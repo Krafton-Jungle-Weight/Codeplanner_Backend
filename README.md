@@ -33,3 +33,8 @@ $ npm run test:e2e
 # test coverage
 $ npm run test:cov
 ```
+
+## 기본 폴더 지침
+자신이 만든 기능은 ./modules 폴더 아래에 기능 별로
+폴더를 생성한 후 거기서 관리하길 바랍니다.
+루트 모듈은 app.module.ts로 해주세요.
