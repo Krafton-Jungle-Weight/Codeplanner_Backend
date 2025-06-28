@@ -30,14 +30,14 @@ export class ProjectController {
     }
 
     // 프로젝트 생성
-    @Post()
+    @Post('create')
     async createProject(@Body() body: any): Promise<any> {
         // 프론트엔드 데이터를 DB 스키마에 맞게 변환
         const projectData = {
         title: body.title,
         descrition: body.descrition,
         project_key: this.generateProjectKey(body.title), // 프로젝트 키 자동 생성
-        leader_id: body.leader_id, // 기본값 또는 실제 leader_id
+        leader_id: body.leader_id || '550e8400-e29b-41d4-a716-446655440001', // 기본값 또는 실제 leader_id(추후 수정)
         status: body.status || '대기중',
         repository_url: body.repository_url || null,
         due_date: body.due_date ? new Date(body.due_date) : undefined,
@@ -62,20 +62,20 @@ export class ProjectController {
         };
     }
 
-    // 프로젝트 수정
-    @Put(':id')
-    updateProject(
-        @Param('id') id: string,
-        @Body() body: Partial<Project>
-    ): Promise<Project> {
-        return this.projectService.update(id, body);
-    }
+    // // 프로젝트 수정
+    // @Put(':id')
+    // updateProject(
+    //     @Param('id') id: string,
+    //     @Body() body: Partial<Project>
+    // ): Promise<Project> {
+    //     return this.projectService.update(id, body);
+    // }
 
-    // 프로젝트 삭제
-    @Delete(':id')
-    deleteProject(@Param('id') id: string): Promise<void> {
-        return this.projectService.remove(id);
-    }
+    // // 프로젝트 삭제
+    // @Delete(':id')
+    // deleteProject(@Param('id') id: string): Promise<void> {
+    //     return this.projectService.remove(id);
+    // }
 
     // 날짜 포맷팅
     private formatDate(date: Date | string): string {
