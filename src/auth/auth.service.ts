@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from 'src/user/user.service';
+
 @Injectable()
 export class AuthService {
   constructor(private readonly jwtService: JwtService) {}
@@ -8,11 +9,12 @@ export class AuthService {
   getAccessToken({ user }): string {
     return this.jwtService.sign(
       {
+        id: user.id,
         email: user.email,
-        sub: user.id,
+        display_name: user.display_name,
       },
       {
-        secret: process.env.ACCESS_TOKEN_SECRET_KEY,
+        secret: 'your-secret-key-here', // 고정된 secret 사용(배포환경에서는 환경변수로 설정)
         expiresIn: '1h',
       },
     );
@@ -21,11 +23,12 @@ export class AuthService {
   setRefrashToken({ user, res }) {
     const refreshToken = this.jwtService.sign(
       {
+        id: user.id,
         email: user.email,
-        sub: user.id,
+        display_name: user.display_name,
       },
       {
-        secret: process.env.REFRESH_TOKEN_SECRET_KEY,
+        secret: 'your-secret-key-here', // 고정된 secret 사용 (배포환경에서는 환경변수로 설정)
         expiresIn: '1w',
       },
     );

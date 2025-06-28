@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/user.entity';
+import { EmailVerificationToken } from 'src/email/email.entity';
 
 @Module({
   imports: [

@@ -27,7 +27,7 @@ export class EmailService {
     signupVerifyToken: string,
   ) {
     // 이 링크를 통해
-    const baseUrl = 'http://localhost:3000';
+    const baseUrl = 'http://localhost:5000';
     const url = `${baseUrl}/user/email-verify?email=${emailAddress}&verifyToken=${signupVerifyToken}`;
 
     const mailOptions: EmailOptions = {

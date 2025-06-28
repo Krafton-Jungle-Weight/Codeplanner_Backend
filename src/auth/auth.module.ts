@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { UserService } from 'src/user/user.service';
 import { JwtModule } from '@nestjs/jwt';
 import { User } from 'src/user/user.entity';
+import { EmailVerificationToken } from 'src/email/email.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
@@ -13,9 +14,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       secret: 'your-secret-key-here',
       signOptions: { expiresIn: '1h' },
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, EmailVerificationToken]),
   ],
   controllers: [AuthController],
   providers: [EmailService, AuthService, UserService],
+  exports: [JwtModule],
 })
 export class AuthModule {}

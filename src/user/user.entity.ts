@@ -1,6 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { IsNotEmpty } from 'class-validator';
 
+// 유저 엔티티
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
