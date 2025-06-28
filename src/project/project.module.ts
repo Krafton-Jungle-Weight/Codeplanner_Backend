@@ -6,9 +6,10 @@ import { User } from '../user/user.entity';
 import { ProjectService } from './project.service';
 import { ProjectController } from './project.controller';
 
+// 프로젝트 모듈
 @Module({
-  imports: [TypeOrmModule.forFeature([Project, ProjectMember, User])],
-  providers: [ProjectService],
-  controllers: [ProjectController],
+    imports: [TypeOrmModule.forFeature([Project, ProjectMember, User])],
+    providers: [ProjectService],
+    controllers: [ProjectController],
 })
 export class ProjectModule {}
