@@ -12,6 +12,12 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v3
 
+    - name: Set up SSH private key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+
     - name: Decode EC2 SSH key
       run: |
         echo "${{ secrets.ENCODED_EC2_SSH_KEY }}" | base64 -d > ~/.ssh/id_rsa
