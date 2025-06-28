@@ -20,7 +20,7 @@ jobs:
     - name: SSH and deploy
       run: |
         ssh -o StrictHostKeyChecking=no ubuntu@43.201.107.10 << 'EOF'
-          cd /home/ubuntu/your-project
+          cd /home/ubuntu/codeplanner
           git pull origin main
           npm install
           npm run build
