@@ -17,7 +17,7 @@ import { ProjectMember } from './project-member.entity';
         private readonly projectMemberRepo: Repository<ProjectMember>,
     ) {}
 
-// 프로젝트 전체 조회
+    // 프로젝트 전체 조회
     async findAll(): Promise<any[]> {
         const projects = await this.projectRepo
         .createQueryBuilder('project')
@@ -40,7 +40,7 @@ import { ProjectMember } from './project-member.entity';
         }));
     }
 
-// 특정 프로젝트 하나 조회
+    // 특정 프로젝트 하나 조회
     async findOne(id: string): Promise<any> {
         const project = await this.projectRepo
         .createQueryBuilder('project')
@@ -68,20 +68,20 @@ import { ProjectMember } from './project-member.entity';
         };
     }
 
-// 프로젝트 생성
+    // 프로젝트 생성
     async create(projectData: Partial<Project>): Promise<Project> { 
         const project = this.projectRepo.create(projectData);
         return await this.projectRepo.save(project);
     }
 
-// 프로젝트 수정
+    // 프로젝트 수정
     async update(id: string, projectData: Partial<Project>): Promise<Project> {
         const project = await this.findOne(id);
         Object.assign(project, projectData);
         return await this.projectRepo.save(project);
     }
 
-// 프로젝트 삭제
+    // 프로젝트 삭제
     async remove(id: string): Promise<void> {
         const project = await this.findOne(id);
         await this.projectRepo.remove(project);

@@ -4,35 +4,44 @@ import { ProjectMember } from './project-member.entity';
 
 @Entity('project')
 export class Project {
-    @PrimaryGeneratedColumn('uuid')  // 프로젝트 ID
+    // 프로젝트 ID
+    @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ type: 'varchar', length: 255, nullable: false })  // 프로젝트 제목
+    // 프로젝트 제목
+    @Column({ type: 'varchar', length: 255, nullable: false })
     title: string;
 
-    @Column({ type: 'text', nullable: true })  // 프로젝트 설명
+    // 프로젝트 설명
+    @Column({ type: 'text', nullable: true })
     descrition: string;
 
-    @Column({ type: 'varchar', length: 20, unique: true, nullable: false })  // 프로젝트 키(Github 연동시 사용, 추후에 수정)
+    // 프로젝트 키(Github 연동시 사용, 추후에 수정)
+    @Column({ type: 'varchar', length: 20, unique: true, nullable: false })
     project_key: string;
 
-    @Column({ type: 'uuid', nullable: false })  // 프로젝트 담당자 ID
+    // 프로젝트 담당자 ID
+    @Column({ type: 'uuid', nullable: false })
     leader_id: string;
 
-    @Column({          // 프로젝트 상태(기본은 대기중)
+    // 프로젝트 상태(기본은 대기중)
+    @Column({
         type: 'varchar', 
         length: 20, 
         default: '대기중'
     })
     status: string;
 
-    @Column({ type: 'text', nullable: true })  // 프로젝트 저장소 URL
+    // 프로젝트 저장소 URL
+    @Column({ type: 'text', nullable: true })
     repository_url: string;
 
-    @Column({ type: 'date', nullable: true })  // 프로젝트 마감일
+    // 프로젝트 마감일
+    @Column({ type: 'date', nullable: true })
     due_date: Date;
 
-    @Column({ type: 'timestamptz', nullable: true })  // 프로젝트 만료일(이게 있어야하는지 모르겠다.)
+    // 프로젝트 만료일(이게 있어야하는지 모르겠다.)
+    @Column({ type: 'timestamptz', nullable: true })
     expires_at: Date;
 
     // 관계 설정

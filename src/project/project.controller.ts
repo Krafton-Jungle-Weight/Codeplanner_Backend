@@ -7,7 +7,7 @@ import { Project } from './project.entity';
 export class ProjectController {
     constructor(private readonly projectService: ProjectService) {}
 
-// 프로젝트 전체 조회
+    // 프로젝트 전체 조회
     @Get()
     async getAll(): Promise<any[]> {
         const projects = await this.projectService.findAll();
@@ -18,7 +18,7 @@ export class ProjectController {
         }));
     }
 
-// 특정 프로젝트 하나 조회
+    // 특정 프로젝트 하나 조회
     @Get(':id')  
     async getOne(@Param('id') id: string): Promise<any> {
         const project = await this.projectService.findOne(id);
@@ -29,7 +29,7 @@ export class ProjectController {
         };
     }
 
-// 프로젝트 생성
+    // 프로젝트 생성
     @Post()
     async createProject(@Body() body: any): Promise<any> {
         // 프론트엔드 데이터를 DB 스키마에 맞게 변환
@@ -62,7 +62,7 @@ export class ProjectController {
         };
     }
 
-// 프로젝트 수정
+    // 프로젝트 수정
     @Put(':id')
     updateProject(
         @Param('id') id: string,
@@ -71,13 +71,13 @@ export class ProjectController {
         return this.projectService.update(id, body);
     }
 
-// 프로젝트 삭제
+    // 프로젝트 삭제
     @Delete(':id')
     deleteProject(@Param('id') id: string): Promise<void> {
         return this.projectService.remove(id);
     }
 
-// 날짜 포맷팅
+    // 날짜 포맷팅
     private formatDate(date: Date | string): string {
         const dateObj = new Date(date);
         const year = dateObj.getFullYear();
@@ -86,7 +86,7 @@ export class ProjectController {
         return `${year}년 ${month}월 ${day}일`;
     }
 
-// 프로젝트 키 생성
+    // 프로젝트 키 생성
     private generateProjectKey(title: string): string {
         // 프로젝트 제목에서 프로젝트 키 생성 (예: "나만무 프로젝트" -> "NMM001")
         const prefix = title.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');

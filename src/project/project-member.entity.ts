@@ -4,13 +4,17 @@ import { User } from '../user/user.entity';
 
 @Entity('project_member')
 export class ProjectMember {
-    @PrimaryColumn({ type: 'uuid' })  // 프로젝트 고유 값 (랜덤부여)
+
+    // 프로젝트 고유 값 (랜덤부여)
+    @PrimaryColumn({ type: 'uuid' })
     project_id: string;
 
-    @PrimaryColumn({ type: 'uuid' })  // 프로젝트 소속 유저 고유 값
+    // 프로젝트 소속 유저 고유 값
+    @PrimaryColumn({ type: 'uuid' })
     user_id: string;
 
-    @Column({ type: 'varchar', length: 20, default: 'MEMBER' })  // 프로젝트 소속 유저 역할
+    // 프로젝트 소속 유저 역할
+    @Column({ type: 'varchar', length: 20, default: 'MEMBER' })
     role: string;
 
     // 관계 설정
