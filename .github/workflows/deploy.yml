@@ -1,0 +1,28 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3
+
+    - name: Decode EC2 SSH key
+      run: |
+        echo "${{ secrets.ENCODED_EC2_SSH_KEY }}" | base64 -d > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+
+    - name: SSH and deploy
+      run: |
+        ssh -o StrictHostKeyChecking=no ubuntu@43.201.107.10 << 'EOF'
+          cd /home/ubuntu/your-project
+          git pull origin main
+          npm install
+          npm run build
+          pm2 restart all
+        EOF
