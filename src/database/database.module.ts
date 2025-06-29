@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectModule } from '../project/project.module';
 import { UserModule } from '../user/user.module';
@@ -31,7 +31,7 @@ import { EmailVerificationToken } from 'src/email/email.entity';
     */
 
   ProjectModule,
-  UserModule, 
+  forwardRef(() => UserModule), 
 ],
 })
 export class DatabaseModule {}
