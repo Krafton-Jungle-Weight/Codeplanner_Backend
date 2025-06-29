@@ -21,14 +21,14 @@ export class Issue {
   status: string;
 
   @Column({ type: 'uuid', nullable: true, name: 'assignee_id' })
-  assigneeId: string;
+  assigneeId: string | null;
 
-  @Column({ type: 'uuid', name: 'reporter_id' })
-  reporterId: string;
+  @Column({ type: 'uuid', nullable: true, name: 'reporter_id' })
+  reporterId: string | null;
 
   @Column({ type: 'date', nullable: true, name: 'start_date' })
-  startDate: Date;
+  startDate: Date | null;
 
   @Column({ type: 'date', nullable: true, name: 'due_date' })
-  dueDate: Date;
+  dueDate: Date | null;
 }

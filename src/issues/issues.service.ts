@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Issue } from './issues.entity';
 import { Repository } from 'typeorm';
-import { IssueInfoDto } from './dto/issue-info.dto';
+import { UpdateIssueDto } from './dto/issue-info.dto';
 import { CreateIssueDto } from './dto/create-issue.dto';
 
 @Injectable()
@@ -36,24 +36,16 @@ export class IssuesService {
   async getIssueInfo(
     issueId: string,
     projectId: string,
-  ): Promise<IssueInfoDto> {
-    const issue = await this.issueRepository.findOne({
-      where: {
-        id: issueId,
-        projectId: projectId,
-      },
-    });
+  ): Promise<UpdateIssueDto> {
+    const issue = await this.findIssueById(issueId, projectId);
 
     if (!issue) {
       throw new NotFoundException('해당 이슈를 찾을 수 없습니다.');
     }
 
-    // 필요한 기본값 처리
     return {
-      id: issue.id,
-      projectId: issue.projectId,
       title: issue.title,
-      description: issue.description ?? '', // 필수니까 null 방지
+      description: issue.description ?? '',
       issueType: issue.issueType ?? 'task',
       status: issue.status ?? 'TODO',
       assigneeId: issue.assigneeId ?? null,
@@ -61,5 +53,24 @@ export class IssuesService {
       startDate: issue.startDate ?? null,
       dueDate: issue.dueDate ?? null,
     };
+  }
+
+  async updateIssueInfo(
+    dto: UpdateIssueDto,
+    projectId: string,
+    issueId: string,
+  ): Promise<Issue> {
+    const issue = await this.findIssueById(issueId, projectId);
+
+    if (dto.title !== undefined) issue.title = dto.title;
+    if (dto.description !== undefined) issue.description = dto.description;
+    if (dto.issueType !== undefined) issue.issueType = dto.issueType;
+    if (dto.status !== undefined) issue.status = dto.status;
+    if (dto.assigneeId !== undefined) issue.assigneeId = dto.assigneeId;
+    if (dto.reporterId !== undefined) issue.reporterId = dto.reporterId;
+    if (dto.startDate !== undefined) issue.startDate = dto.startDate;
+    if (dto.dueDate !== undefined) issue.dueDate = dto.dueDate;
+
+    return await this.issueRepository.save(issue);
   }
 }
