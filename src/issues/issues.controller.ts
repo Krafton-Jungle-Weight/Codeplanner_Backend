@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { IssuesService } from './issues.service';
-import { CreateIssueDto } from 'src/dto/create-issue.dto';
+import { CreateIssueDto } from './dto/create-issue.dto';
 
 @Controller('api')
 export class IssuesController {
@@ -14,5 +14,13 @@ export class IssuesController {
   @Post('/projects/:projectId/issues')
   createIssue(@Body() createIssueDto: CreateIssueDto){
     return this.issuesService.createIssue(createIssueDto);
+  }
+
+  @Get('/projects/:projectId/:issueId')
+  getIssueById(
+    @Param('issueId') issueId: string,
+    @Param('projectId') projectId: string,
+  ){
+    return this.issuesService.findIssueById(issueId, projectId)
   }
 }
