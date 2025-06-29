@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Issue } from './issues.entity';
 import { Repository } from 'typeorm';
+import { CreateIssueDto } from 'src/dto/create-issue.dto';
 
 @Injectable()
 export class IssuesService {
@@ -11,8 +12,11 @@ export class IssuesService {
   ) {}
 
   async getIssues(projectId: string) {
-    return this.issueRepository.find({
+    return await this.issueRepository.find({
       where: { projectId },
     });
+  
   }
+
+  async createIssue(createIssueDto: CreateIssueDto) {}
 }
