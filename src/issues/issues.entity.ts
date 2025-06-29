@@ -31,4 +31,7 @@ export class Issue {
 
   @Column({ type: 'date', nullable: true, name: 'due_date' })
   dueDate: Date;
+
+  @Column({ type: 'integer', default: 0 })
+  position: number;
 }
