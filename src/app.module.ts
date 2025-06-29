@@ -6,9 +6,10 @@ import { AuthModule } from './auth/auth.module';
 import { EmailController } from './email/email.controller';
 import { EmailModule } from './email/email.module';
 import { DatabaseModule } from './database/database.module';
+import { IssuesModule } from './issues/issues.module';
 
 @Module({
-  imports: [UserModule, AuthModule, EmailModule, DatabaseModule],
+  imports: [UserModule, AuthModule, EmailModule, DatabaseModule, IssuesModule],
   controllers: [AppController, EmailController],
 
   providers: [AppService],
