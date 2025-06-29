@@ -1,7 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Project } from '../project/project.entity';
 import { ProjectMember } from '../project/project-member.entity';
+import { IsNotEmpty } from 'class-validator';
 
+// 유저 엔티티
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')

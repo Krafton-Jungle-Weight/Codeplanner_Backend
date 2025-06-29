@@ -10,8 +10,7 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
-  
-  await app.listen(5000); // 백엔드 포트를 5000으로 설정
-  console.log('🚀 Backend server is running on http://localhost:5000');
+  await app.listen(process.env.PORT ?? 5000); // 백엔드 포트를 5000으로 설정
+  console.log(`🚀 Listening on ${process.env.PORT ?? 5000}`);
 }
 bootstrap();
