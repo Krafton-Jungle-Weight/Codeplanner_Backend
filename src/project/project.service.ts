@@ -28,7 +28,7 @@ import { ProjectMember } from './project-member.entity';
         return projects.map(project => ({
         id: project.id,
         title: project.title,
-        descrition: project.descrition,
+        description: project.description,
         project_key: project.project_key,
         status: project.status,
         repository_url: project.repository_url,
@@ -56,7 +56,7 @@ import { ProjectMember } from './project-member.entity';
         return {
         id: project.id,
         title: project.title,
-        descrition: project.descrition,
+        description: project.description,
         project_key: project.project_key,
         status: project.status,
         repository_url: project.repository_url,
