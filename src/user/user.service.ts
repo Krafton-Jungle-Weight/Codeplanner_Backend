@@ -148,11 +148,21 @@ export class UserService {
   }
 
   // 마이페이지 업데이트
-  async updateMyPage(id: string) {
+  async updateDisplayName(id: string, displayName: string) {
     const user = await this.userRepository.findOneBy({ id: id });
     if (!user) {
       throw new BadRequestException('존재하지 않는 유저입니다.');
     }
-    return user;
+    await this.userRepository.update({ id: id }, { display_name: displayName });
+    return { message: '닉네임 변경 완료' };
+  }
+
+  // 이메일 인증 여부 확인
+  async isVerified(id: string) {
+    const user = await this.userRepository.findOneBy({ id: id });
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다.');
+    }
+    return user.is_verified;
   }
 }

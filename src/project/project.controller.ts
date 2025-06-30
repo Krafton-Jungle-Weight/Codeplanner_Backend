@@ -36,7 +36,7 @@ export class ProjectController {
         // 프론트엔드 데이터를 DB 스키마에 맞게 변환
         const projectData = {
             title: createProjectDto.title,
-            descrition: createProjectDto.descrition,
+            description: createProjectDto.description,
             project_key: this.generateProjectKey(createProjectDto.title), // 프로젝트 키 자동 생성
             leader_id: createProjectDto.leader_id || '550e8400-e29b-41d4-a716-446655440001', // 기본값 또는 실제 leader_id(추후 수정)
             status: createProjectDto.status || '대기중',
@@ -51,7 +51,7 @@ export class ProjectController {
         return {
             id: createdProject.id,
             title: createdProject.title,
-            descrition: createdProject.descrition,
+            description: createdProject.description,
             project_key: createdProject.project_key,
             status: createdProject.status,
             repository_url: createdProject.repository_url || undefined,

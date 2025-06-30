@@ -1,7 +1,7 @@
 export class ProjectResponseDto {
   id: string;
   title: string;
-  descrition?: string;
+  description?: string;
   project_key: string;
   status: string;
   repository_url?: string;
