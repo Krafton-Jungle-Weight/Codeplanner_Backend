@@ -2,8 +2,6 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectModule } from '../project/project.module';
 import { UserModule } from '../user/user.module';
-import { User } from 'src/user/user.entity';
-import { EmailVerificationToken } from 'src/email/email.entity';
 
 @Module({
   imports: [
@@ -19,8 +17,8 @@ import { EmailVerificationToken } from 'src/email/email.entity';
       autoLoadEntities: true,
       synchronize: true, // 개발 시만 true
     }),
-  ProjectModule,
-  forwardRef(() => UserModule), 
-],
+    ProjectModule,
+    forwardRef(() => UserModule),
+  ],
 })
 export class DatabaseModule {}
