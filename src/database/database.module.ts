@@ -13,9 +13,12 @@ import { EmailVerificationToken } from 'src/email/email.entity';
       port: 5432,
 
       // SQL 통합
-      username: 'codeplanner',
-      password: 'codeplanner1234',
-      database: 'codeplanner',
+      // username: 'codeplanner',
+      // password: 'codeplanner1234',
+      // database: 'codeplanner',
+      username: 'postgres',
+      password: 'postgres',
+      database: 'code-planner',
       autoLoadEntities: true,
       synchronize: true, // 개발 시만 true
     }),

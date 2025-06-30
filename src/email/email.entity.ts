@@ -11,11 +11,11 @@ export class EmailVerificationToken {
   @IsNotEmpty()
   email: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   @IsNotEmpty()
   verification_code: string;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamp', nullable: true })
   @IsNotEmpty()
   expires_at: Date;
 }
