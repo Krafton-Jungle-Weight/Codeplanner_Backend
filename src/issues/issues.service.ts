@@ -6,7 +6,6 @@ import { UpdateIssueDto } from './dto/issue-info.dto';
 
 import { CreateIssueDto } from './issues-update.dto';
 
-
 @Injectable()
 export class IssuesService {
   constructor(

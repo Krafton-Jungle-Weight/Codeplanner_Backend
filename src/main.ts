@@ -5,7 +5,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   // CORS 설정 - React 프론트엔드(포트 3000)에서 접근 허용
   app.enableCors({
-    origin: 'http://localhost:3000', // React 앱 주소
+    origin: ['http://localhost:3000', 'http://localhost:5000'], // React 앱 주소
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });

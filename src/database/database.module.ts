@@ -11,31 +11,17 @@ import { EmailVerificationToken } from 'src/email/email.entity';
       type: 'postgres',
       host: 'localhost',
       port: 5432,
-      // 윤호 SQL
+
+      // SQL 통합
+      // username: 'codeplanner',
+      // password: 'codeplanner1234',
+      // database: 'codeplanner',
       username: 'postgres',
       password: 'postgres',
       database: 'code-planner',
-      entities: [__dirname + '/../**/*.entity.{js,ts}'],
-      synchronize: true,
-
-      // 태용 SQL
-      // username: 'postgres',
-      // password: 'root',
-      // database: 'codeplanner',
-      // autoLoadEntities: true,
-      // synchronize: true, // 개발 시만 true
-    }),
-
-    /*
-      // 명석 SQL
-      username: 'codeplanner',
-      password: 'codeplanner1234',
-      database: 'codeplanner',
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: true, // 개발 시만 true
     }),
-    */
-
   ProjectModule,
   forwardRef(() => UserModule), 
 ],
