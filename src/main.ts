@@ -1,11 +1,13 @@
 // ⚠️⚠️⚠️배포환경 관련 설정 주의 필요!!!⚠️⚠️⚠️
 
+import * as crypto from 'crypto';
+// crypto 모듈을 전역으로 설정
+if (!(global as any).crypto) {
+  (global as any).crypto = crypto.webcrypto;
+}
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as crypto from 'crypto';
-
-// crypto 모듈을 전역으로 설정
-(global as any).crypto = crypto.webcrypto;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
