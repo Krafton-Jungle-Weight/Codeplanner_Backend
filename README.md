@@ -1,7 +1,7 @@
 ## 데모용 DB 설정
 
 ### 유저 db 설정
-
+```
 INSERT INTO users (
 id,
 email,
@@ -17,9 +17,9 @@ TRUE,
 'changeme123!', -- 예시용 해시(실제 서비스에선 bcrypt 등으로 해시하세요)
 'local'
 );
-
+```
 ### 프로젝트 db 설정
-
+```
 INSERT INTO project (
 title,
 descrition,
@@ -37,9 +37,9 @@ expires_at
 '2025-12-31', -- 마감일
 NOW() + INTERVAL '30 days' -- 만료일(현재 시점 + 30일)
 );
-
+```
 ### 이슈 db 설정
-
+```
 INSERT INTO issue (
 project_id,
 title,
@@ -76,5 +76,5 @@ gen_random_uuid()
 'IMPROVEMENT',
 gen_random_uuid()
 );
-
+```
 데모 프로젝트 id: 32b6ed8c-9cbc-463f-b44d-b624cd2f0d34
