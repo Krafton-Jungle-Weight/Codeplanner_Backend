@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { IssuesService } from './issues.service';
-import { CreateIssueDto } from './dto/create-issue.dto';
+import { CreateIssueDto, ReorderIssuesDto } from './issues-update.dto';
 import { UpdateIssueDto } from './dto/issue-info.dto';
 import { Issue } from './issues.entity';
 
@@ -13,9 +13,23 @@ export class IssuesController {
     return this.issuesService.getIssues(projectId);
   }
 
-  @Post('/projects/:projectId/issues')
-  createIssue(@Body() createIssueDto: CreateIssueDto){
-    return this.issuesService.createIssue(createIssueDto);
+  @Patch('/projects/:projectId/issues/updateOrder')
+  async updateIssueOrderAndStatus(@Body() dto: ReorderIssuesDto) {
+    await this.issuesService.updateIssueOrderAndStatus(
+      dto.issueIds,
+      dto.targetColumnId,
+    );
+    return { success: 'Issue order and status updated successfully' };
+  }
+
+  @Post('/projects/:projectId/issues/create')
+  async createIssue(
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateIssueDto,
+  ) {
+    console.log(projectId, dto);
+    await this.issuesService.createIssue(projectId, dto);
+    return { success: 'Issue created successfully' };
   }
 
   @Get('/projects/:projectId/:issueId')

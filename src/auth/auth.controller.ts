@@ -41,9 +41,24 @@ export class AuthController {
     }
 
     this.authService.setRefrashToken({ user, res });
+    console.log('user id', user.id);
+    const jwt = this.authService.getAccessToken({ user, res });
 
-    const jwt = this.authService.getAccessToken({ user });
+    return res.status(200).json({
+      message: '로그인 성공',
+      accessToken: jwt,
+      user: {
+        id: user.id,
+        email: user.email,
+        display_name: user.display_name,
+      },
+    });
+  }
 
-    return res.status(200).send(jwt);
+  @Post('/logout')
+  async logout(@Res() res: Response) {
+    res.clearCookie('jwtToken');
+    res.clearCookie('refreshToken');
+    return res.status(200).json({ message: '로그아웃 성공' });
   }
 }

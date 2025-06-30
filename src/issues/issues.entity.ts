@@ -30,5 +30,10 @@ export class Issue {
   startDate: Date | null;
 
   @Column({ type: 'date', nullable: true, name: 'due_date' })
+  // dueDate 문제 발생시 여기 참고해야함. 기존 코드
+  // dueDate: Date;
   dueDate: Date | null;
+
+  @Column({ type: 'integer', default: 0 })
+  position: number;
 }

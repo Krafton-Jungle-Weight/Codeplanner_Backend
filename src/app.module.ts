@@ -11,6 +11,7 @@ import { IssuesModule } from './issues/issues.module';
 @Module({
   imports: [UserModule, AuthModule, EmailModule, DatabaseModule, IssuesModule],
   controllers: [AppController, EmailController],
+
   providers: [AppService],
 })
 export class AppModule {}

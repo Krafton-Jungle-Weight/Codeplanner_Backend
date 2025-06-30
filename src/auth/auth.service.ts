@@ -6,8 +6,8 @@ import { UserService } from 'src/user/user.service';
 export class AuthService {
   constructor(private readonly jwtService: JwtService) {}
 
-  getAccessToken({ user }): string {
-    return this.jwtService.sign(
+  getAccessToken({ user, res }) {
+    const accessToken = this.jwtService.sign(
       {
         id: user.id,
         email: user.email,
@@ -18,6 +18,16 @@ export class AuthService {
         expiresIn: '1h',
       },
     );
+
+    // JWT 토큰을 쿠키로 설정
+    res.cookie('jwtToken', accessToken, {
+      httpOnly: true,
+      secure: false, // 개발환경에서는 false
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 1000, // 1시간
+    });
+
+    return accessToken;
   }
 
   setRefrashToken({ user, res }) {
@@ -33,8 +43,14 @@ export class AuthService {
       },
     );
 
-    // 배포환경에서 쿠키 보안옵션과 CORS 추가
-    res.setHeader('Set-Cookie', `refreshToken=${refreshToken}`);
-    return;
+    // Refresh 토큰을 쿠키로 설정
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: false, // 개발환경에서는 false, 프로덕션에서는 true
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 1주일
+    });
+
+    return refreshToken;
   }
 }
