@@ -3,6 +3,7 @@ import { IssuesService } from './issues.service';
 import { CreateIssueDto, ReorderIssuesDto } from './issues-update.dto';
 import { UpdateIssueDto } from './dto/issue-info.dto';
 import { Issue } from './issues.entity';
+import { CurrentUser } from 'src/auth/user.decorator';
 
 @Controller('api')
 export class IssuesController {
@@ -47,5 +48,13 @@ export class IssuesController {
     @Param('issueId') issueId: string,
   ): Promise<Issue>{
     return this.issuesService.updateIssueInfo(IssueInfoDto, projectId, issueId);
+  }
+
+  @Get('/projects/:projectId/my-issues')
+  getMyIssue(
+    @CurrentUser() user: any,
+    @Param('projectId') projectId: string,
+  ): Promise<Issue[]>{
+    return this.issuesService.getIssuesCurrentUser(user.id, projectId)
   }
 }

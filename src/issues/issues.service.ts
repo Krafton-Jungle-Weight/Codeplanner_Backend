@@ -97,6 +97,16 @@ export class IssuesService {
 
     return await this.issueRepository.save(issue);
   }
+
+  async getIssuesCurrentUser(
+    userId: string,
+    projectId: string,
+  ): Promise<Issue[]>{
+    return await this.issueRepository.find({
+      where: { projectId, userId },
+    });
+  }
+
   async updateIssueOrderAndStatus(
     issueIds: string[],
     targetColumnId: string,
