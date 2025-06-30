@@ -18,17 +18,13 @@ jobs:
         echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
 
-    - name: Decode EC2 SSH key
-      run: |
-        echo "${{ secrets.ENCODED_EC2_SSH_KEY }}" | base64 -d > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-
     - name: SSH and deploy
       run: |
         ssh -o StrictHostKeyChecking=no ubuntu@43.201.107.10 << 'EOF'
-          cd /home/ubuntu/codeplanner
+          cd /home/ubuntu/codeplanner/Codeplanner_Backend
           git pull origin main
           npm install
           npm run build
+          export NODE_ENV=production
           pm2 restart all
         EOF
