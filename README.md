@@ -22,7 +22,7 @@ TRUE,
 ```
 INSERT INTO project (
 title,
-descrition,
+description,
 project_key,
 leader_id,
 repository_url,

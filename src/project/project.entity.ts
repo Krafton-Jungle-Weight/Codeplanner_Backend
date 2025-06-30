@@ -14,7 +14,7 @@ export class Project {
 
     // 프로젝트 설명
     @Column({ type: 'text', nullable: true })
-    descrition: string;
+    description: string;
 
     // 프로젝트 키(Github 연동시 사용, 추후에 수정)
     @Column({ type: 'varchar', length: 20, unique: true, nullable: false })

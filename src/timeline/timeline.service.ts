@@ -145,7 +145,7 @@ export class TimelineService {
     // 프로젝트 정보 조회
     const project = await this.projectRepository.findOne({
       where: { id: projectId },
-      select: ['title', 'descrition', 'project_key', 'status', 'repository_url', 'due_date']
+      select: ['title', 'description', 'project_key', 'status', 'repository_url', 'due_date']
     });
 
     // 이슈 통계 조회
@@ -179,7 +179,7 @@ export class TimelineService {
 
     return {
       title: project?.title || '프로젝트',
-      description: project?.descrition || '프로젝트 설명이 없습니다.',
+      description: project?.description || '프로젝트 설명이 없습니다.',
       projectKey: project?.project_key || `PROJ-${projectId.substring(0, 8).toUpperCase()}`,
       status: status,
       repositoryUrl: project?.repository_url || null,
