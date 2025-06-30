@@ -2,6 +2,10 @@
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import * as crypto from 'crypto';
+
+// crypto 모듈을 전역으로 설정
+(global as any).crypto = crypto.webcrypto;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
