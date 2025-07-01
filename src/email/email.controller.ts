@@ -1,4 +1,4 @@
 import { Controller } from '@nestjs/common';
 
-@Controller('email')
+@Controller('api/email')
 export class EmailController {}
