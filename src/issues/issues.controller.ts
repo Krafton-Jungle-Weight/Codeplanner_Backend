@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { IssuesService } from './issues.service';
 import { CreateIssueDto, ReorderIssuesDto } from './issues-update.dto';
 import { UpdateIssueDto } from './dto/issue-info.dto';
@@ -15,6 +15,12 @@ export class IssuesController {
 
   @Patch('/projects/:projectId/issues/updateOrder')
   async updateIssueOrderAndStatus(@Body() dto: ReorderIssuesDto) {
+    // console.log('=== 컨트롤러에서 요청 받음 ===');
+    // console.log('전체 DTO:', dto);
+    // console.log('DTO 타입:', typeof dto);
+    // console.log('issueIds:', dto.issueIds);
+    // console.log('targetColumnId:', dto.targetColumnId);
+
     await this.issuesService.updateIssueOrderAndStatus(
       dto.issueIds,
       dto.targetColumnId,
@@ -36,8 +42,8 @@ export class IssuesController {
   getIssueById(
     @Param('issueId') issueId: string,
     @Param('projectId') projectId: string,
-  ){
-    return this.issuesService.findIssueById(issueId, projectId)
+  ) {
+    return this.issuesService.findIssueById(issueId, projectId);
   }
 
   @Patch('/projects/:projectId/:issueId')
@@ -45,8 +51,16 @@ export class IssuesController {
     @Body() IssueInfoDto: UpdateIssueDto,
     @Param('projectId') projectId: string,
     @Param('issueId') issueId: string,
-  ): Promise<Issue>{
+  ): Promise<Issue> {
     return this.issuesService.updateIssueInfo(IssueInfoDto, projectId, issueId);
+  }
+
+  @Delete('/projects/:projectId/issues/:issueId')
+  deleteIssue(
+    @Param('issueId') issueId: string,
+    @Param('projectId') projectId: string,
+  ) {
+    return this.issuesService.deleteIssue(issueId, projectId);
   }
 
   @Post('/issues/:id/update-dates')
