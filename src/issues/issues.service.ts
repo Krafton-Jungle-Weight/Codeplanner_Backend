@@ -111,14 +111,6 @@ export class IssuesService {
     .getMany();
   }
 
-  async getIssuesCurrentUserCount(userId: string, projectId: string): Promise<number> {
-    return this.issueRepository
-    .createQueryBuilder('issue')
-    .where('issue.assigneeId = :userId', { userId })
-    .andWhere('issue.projectId = :projectId', { projectId })
-    .getCount();
-  }
-
   async updateIssueOrderAndStatus(
     issueIds: string[],
     targetColumnId: string,
