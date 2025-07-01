@@ -15,7 +15,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 import { UpdateUserDisplayNameDto } from './dto/update-user-displayname.dto';
 
-@Controller('User')
+@Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
