@@ -5,11 +5,16 @@ import { ProjectMember } from './project-member.entity';
 import { User } from '../user/user.entity';
 import { ProjectService } from './project.service';
 import { ProjectController } from './project.controller';
-
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { AuthModule } from 'src/auth/auth.module';
 // 프로젝트 모듈
 @Module({
-    imports: [TypeOrmModule.forFeature([Project, ProjectMember, User])],
-    providers: [ProjectService],
-    controllers: [ProjectController],
+  imports: [
+    TypeOrmModule.forFeature([Project, ProjectMember, User]),
+    AuthModule,
+  ],
+  providers: [ProjectService, JwtAuthGuard],
+  controllers: [ProjectController],
+  exports: [ProjectService],
 })
 export class ProjectModule {}

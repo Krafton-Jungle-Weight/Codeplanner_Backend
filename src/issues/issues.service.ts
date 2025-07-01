@@ -41,6 +41,7 @@ export class IssuesService {
   async getIssues(projectId: string) {
     return await this.issueRepository.find({
       where: { projectId },
+      order: { position: 'ASC' },
     });
   }
 
@@ -133,5 +134,9 @@ export class IssuesService {
       dto.dueDate,
       dto.position,
     ]);
+  }
+
+  async deleteIssue(issueId: string, projectId: string): Promise<void> {
+    await this.issueRepository.delete({ id: issueId, projectId });
   }
 }

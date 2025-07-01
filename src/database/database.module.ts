@@ -5,8 +5,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import { ProjectModule } from '../project/project.module';
 import { UserModule } from '../user/user.module';
-import { User } from 'src/user/user.entity';
-import { EmailVerificationToken } from 'src/email/email.entity';
 
 @Module({
   imports: [
