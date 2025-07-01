@@ -7,7 +7,7 @@ import { User } from 'src/user/user.entity';
 import { Project } from './project.entity';
 
 // 프로젝트 컨트롤러
-@Controller('projects')
+@Controller('/projects')
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
@@ -48,7 +48,7 @@ export class ProjectController {
       description: createProjectDto.description,
       project_key: this.generateProjectKey(createProjectDto.title), // 프로젝트 키 자동 생성
       leader_id: user.id, // 현재 로그인한 사용자를 leader로 설정
-      status: 'ACTIVE',
+      status: '대기중',
       repository_url: createProjectDto.repository_url || undefined,
       due_date: createProjectDto.due_date
         ? new Date(createProjectDto.due_date)
