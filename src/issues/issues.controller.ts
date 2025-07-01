@@ -72,4 +72,19 @@ export class IssuesController {
   ) {
     return this.issuesService.deleteIssue(issueId, projectId);
   }
+
+  @Post('/issues/:id/update-dates')
+  async updateIssueDates(
+    @Param('id') id: string,
+    @Body() body: { startDate: string, dueDate: string, projectId: string }
+  ) {
+    return this.issuesService.updateIssueInfo(
+      { 
+        startDate: body.startDate ? new Date(body.startDate) : undefined, 
+        dueDate: body.dueDate ? new Date(body.dueDate) : undefined 
+      },
+      body.projectId,
+      id
+    );
+  }
 }
