@@ -6,7 +6,7 @@ import { CurrentUser } from 'src/auth/user.decorator';
 import { User } from 'src/user/user.entity';
 
 // 프로젝트 컨트롤러
-@Controller('projects')
+@Controller('/api/projects')
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
