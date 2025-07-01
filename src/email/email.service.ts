@@ -27,8 +27,7 @@ export class EmailService {
     signupVerifyToken: string,
   ) {
     // 이 링크를 통해
-    const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0];
-    const baseUrl = `${corsOrigin}`;
+    const baseUrl = process.env.BASE_URL;
     const url = `${baseUrl}/auth/emailVerified?email=${emailAddress}&verifyToken=${signupVerifyToken}`;
 
     const mailOptions: EmailOptions = {
