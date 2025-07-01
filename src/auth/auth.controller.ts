@@ -14,7 +14,7 @@ import { Repository } from 'typeorm';
 import { User } from 'src/user/user.entity';
 import * as bcrypt from 'bcrypt';
 
-@Controller('auth')
+@Controller('api/auth')
 export class AuthController {
   constructor(
     private readonly userService: UserService,
