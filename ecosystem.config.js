@@ -2,7 +2,7 @@
 module.exports = {
   apps: [
     {
-      name: 'codeplanner-backend',
+      name: 'Codeplanner-Backend',
       script: 'dist/main.js',
       instances: 1,
       autorestart: true,
