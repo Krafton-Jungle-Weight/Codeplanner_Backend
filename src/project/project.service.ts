@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { Project } from './project.entity';
 import { User } from '../user/user.entity';
 import { ProjectMember } from './project-member.entity';
-import { DataSource } from 'typeorm';
 
 // 프로젝트 서비스
 @Injectable()
@@ -16,7 +15,6 @@ export class ProjectService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(ProjectMember)
     private readonly projectMemberRepo: Repository<ProjectMember>,
-    private readonly dataSource: DataSource,
   ) {}
 
   // 프로젝트 전체 조회
@@ -115,7 +113,7 @@ export class ProjectService {
       await this.addProjectMember(
         savedProject.id,
         projectData.leader_id,
-        'ADMIN',
+        'READER',
       );
     }
 
@@ -155,142 +153,11 @@ export class ProjectService {
     userId: string,
     role: string = 'MEMBER',
   ): Promise<void> {
-    // 이미 멤버인지 확인
-    const existingMember = await this.projectMemberRepo.findOne({
-      where: { project_id: projectId, user_id: userId },
-    });
-
-    if (existingMember) {
-      throw new Error('이미 프로젝트 멤버입니다.');
-    }
-
     const projectMember = this.projectMemberRepo.create({
       project_id: projectId,
       user_id: userId,
       role: role,
     });
     await this.projectMemberRepo.save(projectMember);
-  }
-
-  // 프로젝트 팀원 목록 조회
-  async getMembers(projectId: string) {
-    const members = await this.projectMemberRepo
-      .createQueryBuilder('pm')
-      .leftJoinAndSelect('pm.user', 'user')
-      .where('pm.project_id = :projectId', { projectId })
-      .getMany();
-
-    return members.map(member => ({
-      id: member.user.id,
-      display_name: member.user.display_name,
-      email: member.user.email,
-      role: member.role,
-    }));
-  }
-
-  // 프로젝트 팀원 역할 변경
-  async changeMemberRole(projectId: string, userId: string, role: string) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      // 프로젝트 멤버 역할 변경
-      await queryRunner.manager
-        .createQueryBuilder()
-        .update(ProjectMember)
-        .set({ role })
-        .where('project_id = :projectId AND user_id = :userId', { projectId, userId })
-        .execute();
-
-      await queryRunner.commitTransaction();
-      return { message: '역할이 변경되었습니다.' };
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  // 프로젝트 팀원 제거
-  async removeMember(projectId: string, userId: string) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      // 프로젝트 리더는 제거할 수 없음
-      const project = await queryRunner.manager.findOne(Project, {
-        where: { id: projectId }
-      });
-      
-      if (!project) {
-        throw new Error('프로젝트를 찾을 수 없습니다.');
-      }
-      
-      if (project.leader_id === userId) {
-        throw new Error('프로젝트 리더는 제거할 수 없습니다.');
-      }
-
-      // 프로젝트 멤버 제거
-      await queryRunner.manager
-        .createQueryBuilder()
-        .delete()
-        .from(ProjectMember)
-        .where('project_id = :projectId AND user_id = :userId', { projectId, userId })
-        .execute();
-
-      await queryRunner.commitTransaction();
-      return { message: '팀원이 제거되었습니다.' };
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  // 프로젝트 리더 변경
-  async changeLeader(projectId: string, newLeaderId: string) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      // 새 리더가 프로젝트 멤버인지 확인
-      const member = await queryRunner.manager.findOne(ProjectMember, {
-        where: { project_id: projectId, user_id: newLeaderId }
-      });
-
-      if (!member) {
-        throw new Error('프로젝트 멤버가 아닌 사용자는 리더가 될 수 없습니다.');
-      }
-
-      // 프로젝트 리더 변경
-      await queryRunner.manager
-        .createQueryBuilder()
-        .update(Project)
-        .set({ leader_id: newLeaderId })
-        .where('id = :projectId', { projectId })
-        .execute();
-
-      await queryRunner.commitTransaction();
-      return { message: '프로젝트 리더가 변경되었습니다.' };
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  async deleteProject(id: string) {
-    // 연관된 데이터(멤버, 이슈 등)도 필요시 함께 삭제
-    await this.projectMemberRepo.delete({ project_id: id });
-    // TODO: 이슈 등 다른 연관 데이터도 삭제 필요시 추가
-
-    await this.projectRepo.delete(id);
-    return { message: '프로젝트가 삭제되었습니다.' };
   }
 }
