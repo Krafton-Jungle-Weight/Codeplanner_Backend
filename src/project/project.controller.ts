@@ -1,10 +1,9 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { ProjectService } from './project.service';
 import { CreateProjectDto, ProjectResponseDto } from './dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 import { User } from 'src/user/user.entity';
-import { Project } from './project.entity';
 
 // 프로젝트 컨트롤러
 @Controller('/projects')
@@ -26,7 +25,6 @@ export class ProjectController {
   }
 
   // 특정 프로젝트 하나 조회
-  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async getOne(@Param('id') id: string): Promise<ProjectResponseDto> {
     const project = await this.projectService.findOne(id);
@@ -34,8 +32,8 @@ export class ProjectController {
       ...project,
       due_date: project.due_date ? this.formatDate(project.due_date) : null,
       expires_at: project.expires_at
-      ? this.formatDate(project.expires_at)
-      : null,
+        ? this.formatDate(project.expires_at)
+        : null,
     };
   }
 
@@ -81,89 +79,21 @@ export class ProjectController {
       leader_id: createdProject.leader_id,
     };
   }
-  
-  @UseGuards(JwtAuthGuard)
-  @Patch(':id')
-  async updateProject(
-    @Param('id') id: string,
-    @Body() body: Partial<Project>,
-    @CurrentUser() user: User
-  ): Promise<ProjectResponseDto> {
-    // 권한 체크 등 필요시 추가
-    const updated= await this.projectService.update(id, body);
-    return {
-      id: updated.id,
-      title: updated.title,
-      description: updated.description,
-      project_key: updated.project_key,
-      status: updated.status,
-      repository_url: updated.repository_url,
-      due_date: updated.due_date ? this.formatDate(updated.due_date) : undefined,
-      expires_at: updated.expires_at ? this.formatDate(updated.expires_at) : undefined,
-      leader_id: updated.leader_id,
-      project_people: updated.members?.length || 0,
-      project_leader: updated.leader?.display_name || 'Unknown',
-    };
-  }
 
-  // 프로젝트 팀원 목록 조회
-  @Get(':id/members')
-  @UseGuards(JwtAuthGuard)
-  async getProjectMembers(@Param('id') id: string) {
-    return this.projectService.getMembers(id);
-  }
+  // // 프로젝트 수정
+  // @Put(':id')
+  // updateProject(
+  //     @Param('id') id: string,
+  //     @Body() body: Partial<Project>
+  // ): Promise<Project> {
+  //     return this.projectService.update(id, body);
+  // }
 
-  // 프로젝트 팀원 초대
-  @Post(':id/members/invite')
-  @UseGuards(JwtAuthGuard)
-  async inviteMember(
-    @Param('id') id: string,
-    @Body() body: { userId: string; role: string },
-    @CurrentUser() user: User
-  ) {
-    return this.projectService.addProjectMember(id, body.userId, body.role);
-  }
-
-  // 프로젝트 팀원 역할 변경
-  @Patch(':id/members/:userId/role')
-  @UseGuards(JwtAuthGuard)
-  async changeMemberRole(
-    @Param('id') id: string,
-    @Param('userId') userId: string,
-    @Body() body: { role: string },
-    @CurrentUser() user: User
-  ) {
-    return this.projectService.changeMemberRole(id, userId, body.role);
-  }
-
-  // 프로젝트 팀원 제거
-  @Delete(':id/members/:userId')
-  @UseGuards(JwtAuthGuard)
-  async removeMember(
-    @Param('id') id: string,
-    @Param('userId') userId: string,
-    @CurrentUser() user: User
-  ) {
-    return this.projectService.removeMember(id, userId);
-  }
-
-  // 프로젝트 리더 변경
-  @Patch(':id/leader')
-  @UseGuards(JwtAuthGuard)
-  async changeLeader(
-    @Param('id') id: string,
-    @Body() body: { leader_id: string },
-    @CurrentUser() user: User
-  ) {
-    return this.projectService.changeLeader(id, body.leader_id);
-  }
-
-  // 프로젝트 삭제
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  async deleteProject(@Param('id') id: string) {
-    return this.projectService.deleteProject(id);
-  }
+  // // 프로젝트 삭제
+  // @Delete(':id')
+  // deleteProject(@Param('id') id: string): Promise<void> {
+  //     return this.projectService.remove(id);
+  // }
 
   // 날짜 포맷팅
   private formatDate(date: Date | string): string {
