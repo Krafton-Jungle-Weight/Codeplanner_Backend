@@ -26,12 +26,16 @@ export class ProjectController {
   }
 
   // 특정 프로젝트 하나 조회
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async getOne(@Param('id') id: string): Promise<ProjectResponseDto> {
     const project = await this.projectService.findOne(id);
     return {
       ...project,
       due_date: project.due_date ? this.formatDate(project.due_date) : null,
+      expires_at: project.expires_at
+      ? this.formatDate(project.expires_at)
+      : null,
     };
   }
 
@@ -77,9 +81,9 @@ export class ProjectController {
       leader_id: createdProject.leader_id,
     };
   }
-
-  @Patch(':id')
+  
   @UseGuards(JwtAuthGuard)
+  @Patch(':id')
   async updateProject(
     @Param('id') id: string,
     @Body() body: Partial<Project>,
