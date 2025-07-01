@@ -27,7 +27,7 @@ export class EmailService {
     signupVerifyToken: string,
   ) {
     // 이 링크를 통해
-    const baseUrl = process.env.prodBASE_URL;
+    const baseUrl = process.env.BASE_URL;
     const url = `${baseUrl}/auth/emailVerified?email=${emailAddress}&verifyToken=${signupVerifyToken}`;
     console.log(url);
 
