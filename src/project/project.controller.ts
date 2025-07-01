@@ -74,8 +74,8 @@ export class ProjectController {
       expires_at: createdProject.expires_at
         ? this.formatDate(createdProject.expires_at)
         : undefined,
-      project_people: 1, // 프로젝트 생성자(leader)가 자동으로 멤버로 추가됨
-      project_leader: createProjectDto.project_leader || '관리자',
+      project_people: createdProject.project_people, // 서비스에서 계산된 멤버 수
+      project_leader: createdProject.leader_display_name, // 서비스에서 가져온 leader display_name
       leader_id: createdProject.leader_id,
     };
   }
