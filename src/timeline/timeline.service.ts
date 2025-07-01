@@ -24,15 +24,19 @@ export class TimelineService {
     });
 
     // 진행률 계산
-    const totalIssues = await this.issueRepository.count({
-      where: { projectId }
-    });
+    const issues = await this.issueRepository.find({ where: { projectId } });
 
-    const completedIssues = await this.issueRepository.count({
-      where: { projectId, status: 'done' }
-    });
-
-    const progress = totalIssues > 0 ? Math.round((completedIssues / totalIssues) * 100) : 0;
+    let totalProgress = 0;
+    for (const issue of issues) {
+      if (issue.status === 'DONE') {
+        totalProgress += 100;
+      } else if (issue.status === 'IN_PROGRESS') {
+        totalProgress += 50;
+      } else if (issue.status === 'TODO') {
+        totalProgress += 0;
+      }
+    }
+    const avgProgress = issues.length > 0 ? totalProgress / issues.length : 0;
 
     // 프로젝트 정보 조회 (마감일 포함)
     const project = await this.projectRepository.findOne({
@@ -53,7 +57,7 @@ export class TimelineService {
 
     return {
       totalTasks,
-      progress,
+      progress: avgProgress,
       dueDate: project?.due_date ? new Date(project.due_date).toISOString().split('T')[0] : null,
       teamMembers: parseInt(teamMembersCount?.count || '0'),
       projectTitle
@@ -73,9 +77,9 @@ export class TimelineService {
     // 상태별 색상 및 라벨 매핑
     const statusMap = {
       'TODO': { label: '대기 중', color: '#fbbf24', count: 0 },
-      'inprogress': { label: '진행 중', color: '#3b82f6', count: 0 },
-      'done': { label: '완료', color: '#10b981', count: 0 },
-      'blocked': { label: '차단됨', color: '#ef4444', count: 0 }
+      'IN_PROGRESS': { label: '진행 중', color: '#3b82f6', count: 0 },
+      'DONE': { label: '완료', color: '#10b981', count: 0 },
+      'BLOCKED': { label: '차단됨', color: '#ef4444', count: 0 }
     };
 
     // 조회된 통계 데이터를 매핑
@@ -83,12 +87,12 @@ export class TimelineService {
       const status = row.status?.toLowerCase();
       if (status === 'todo') {
         statusMap['TODO'].count = parseInt(row.count);
-      } else if (status === 'inprogress') {
-        statusMap['inprogress'].count = parseInt(row.count);
+      } else if (status === 'in_progress') {
+        statusMap['IN_PROGRESS'].count = parseInt(row.count);
       } else if (status === 'done') {
-        statusMap['done'].count = parseInt(row.count);
+        statusMap['DONE'].count = parseInt(row.count);
       } else if (status === 'blocked') {
-        statusMap['blocked'].count = parseInt(row.count);
+        statusMap['BLOCKED'].count = parseInt(row.count);
       }
     });
 
@@ -125,9 +129,9 @@ export class TimelineService {
       let progress = 0;
       if (task.status === 'done') {
         progress = 100;
-      } else if (task.status === 'inprogress') {
+      } else if (task.status === 'in_progress') {
         progress = 50;
-      } else if (task.status === 'TODO') {
+      } else if (task.status === 'todo') {
         progress = 0;
       }
       
