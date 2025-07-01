@@ -104,15 +104,12 @@ export class IssuesService {
   }
 
   async getIssuesCurrentUser(userId: string, projectId: string): Promise<Issue[]> {
-  return this.issueRepository
+    return this.issueRepository
     .createQueryBuilder('issue')
-    .innerJoin('issue.project', 'project')
-    .innerJoin('project.projectMembers', 'pm')
-    .innerJoin('pm.user', 'user')
-    .where('user.id = :userId', { userId })
-    .andWhere('project.id = :projectId', { projectId })
+    .where('issue.assigneeId = :userId', { userId })
+    .andWhere('issue.projectId = :projectId', { projectId })
     .getMany();
-}
+  }
 
   async updateIssueOrderAndStatus(
     issueIds: string[],

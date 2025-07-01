@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { IssuesService } from './issues.service';
 import { CreateIssueDto, ReorderIssuesDto } from './issues-update.dto';
 import { UpdateIssueDto } from './dto/issue-info.dto';
 import { Issue } from './issues.entity';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 
 @Controller('api')
@@ -39,6 +40,15 @@ export class IssuesController {
     return { success: 'Issue created successfully' };
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('/projects/:projectId/my-issues')
+  getMyIssue(
+  @CurrentUser() user: any,
+  @Param('projectId') projectId: string,
+  ): Promise<Issue[]> {
+    return this.issuesService.getIssuesCurrentUser(user.id, projectId);
+  }
+
   @Get('/projects/:projectId/:issueId')
   getIssueById(
     @Param('issueId') issueId: string,
@@ -56,15 +66,6 @@ export class IssuesController {
     return this.issuesService.updateIssueInfo(IssueInfoDto, projectId, issueId);
   }
 
-  @Get('/projects/:projectId/my-issues')
-  getMyIssue(
-    @CurrentUser() user: any,
-    @Param('projectId') projectId: string,
-  ): Promise<Issue[]>{
-    return this.issuesService.getIssuesCurrentUser(user.id, projectId)
-  }
-
-  
   @Delete('/projects/:projectId/issues/:issueId')
   deleteIssue(
     @Param('issueId') issueId: string,
