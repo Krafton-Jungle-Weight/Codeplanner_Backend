@@ -51,6 +51,10 @@ export class Project {
   @Column({ type: 'timestamptz', nullable: true })
   expires_at: Date;
 
+  // // 최근 방문일시
+  // @Column({ type: 'timestamptz', nullable: true })
+  // last_visited_at: Date;
+
   // 관계 설정
   @ManyToOne(() => User, (user) => user.ledProjects)
   @JoinColumn({ name: 'leader_id' })

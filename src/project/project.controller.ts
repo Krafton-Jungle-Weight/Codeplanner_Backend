@@ -55,7 +55,7 @@ export class ProjectController {
       due_date: createProjectDto.due_date
         ? new Date(createProjectDto.due_date)
         : undefined,
-      expires_at: undefined,
+      expires_at: new Date(),
     };
 
     const createdProject = await this.projectService.create(projectData);
@@ -78,6 +78,12 @@ export class ProjectController {
       project_leader: createdProject.leader_display_name, // 서비스에서 가져온 leader display_name
       leader_id: createdProject.leader_id,
     };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('sidebar')
+  async getProjectSidebar(@CurrentUser() user: User): Promise<any> {
+    return this.projectService.getProjectSidebar(user);
   }
 
   // // 프로젝트 수정
