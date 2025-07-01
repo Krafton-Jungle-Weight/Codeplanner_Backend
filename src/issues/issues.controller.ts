@@ -6,16 +6,16 @@ import { Issue } from './issues.entity';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 
-@Controller('api')
+@Controller('projects')
 export class IssuesController {
   constructor(private readonly issuesService: IssuesService) {}
 
-  @Get('/projects/:projectId/issues')
+  @Get('/:projectId/issues')
   getIssues(@Param('projectId') projectId: string) {
     return this.issuesService.getIssues(projectId);
   }
 
-  @Patch('/projects/:projectId/issues/updateOrder')
+  @Patch('/:projectId/issues/updateOrder')
   async updateIssueOrderAndStatus(@Body() dto: ReorderIssuesDto) {
     // console.log('=== 컨트롤러에서 요청 받음 ===');
     // console.log('전체 DTO:', dto);
@@ -30,7 +30,7 @@ export class IssuesController {
     return { success: 'Issue order and status updated successfully' };
   }
 
-  @Post('/projects/:projectId/issues/create')
+  @Post('/:projectId/issues/create')
   async createIssue(
     @Param('projectId') projectId: string,
     @Body() dto: CreateIssueDto,
@@ -41,7 +41,7 @@ export class IssuesController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('/projects/:projectId/my-issues')
+  @Get('/:projectId/my-issues')
   getMyIssue(
   @CurrentUser() user: any,
   @Param('projectId') projectId: string,
@@ -49,7 +49,7 @@ export class IssuesController {
     return this.issuesService.getIssuesCurrentUser(user.id, projectId);
   }
 
-  @Get('/projects/:projectId/:issueId')
+  @Get('/:projectId/:issueId')
   getIssueById(
     @Param('issueId') issueId: string,
     @Param('projectId') projectId: string,
@@ -57,7 +57,7 @@ export class IssuesController {
     return this.issuesService.findIssueById(issueId, projectId);
   }
 
-  @Patch('/projects/:projectId/:issueId')
+  @Patch('/:projectId/:issueId')
   updateIssueInfo(
     @Body() IssueInfoDto: UpdateIssueDto,
     @Param('projectId') projectId: string,
@@ -66,7 +66,7 @@ export class IssuesController {
     return this.issuesService.updateIssueInfo(IssueInfoDto, projectId, issueId);
   }
 
-  @Delete('/projects/:projectId/issues/:issueId')
+  @Delete('/:projectId/issues/:issueId')
   deleteIssue(
     @Param('issueId') issueId: string,
     @Param('projectId') projectId: string,
