@@ -11,7 +11,7 @@ export class IssuesService {
   constructor(
     @InjectRepository(Issue)
     private issueRepository: Repository<Issue>,
-  ) {}
+  ) { }
 
   // UUID 값을 정리하는 헬퍼 함수
   private cleanUuid(uuid: string | undefined): string | undefined {
@@ -93,8 +93,12 @@ export class IssuesService {
     if (dto.status !== undefined) issue.status = dto.status;
     if (dto.assigneeId !== undefined) issue.assigneeId = dto.assigneeId;
     if (dto.reporterId !== undefined) issue.reporterId = dto.reporterId;
-    if (dto.startDate !== undefined) issue.startDate = dto.startDate;
-    if (dto.dueDate !== undefined) issue.dueDate = dto.dueDate;
+    if (dto.startDate !== undefined) {
+      issue.startDate = dto.startDate ? new Date(dto.startDate) : null;
+    }
+    if (dto.dueDate !== undefined) {
+      issue.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+    }
 
     return await this.issueRepository.save(issue);
   }
@@ -138,5 +142,14 @@ export class IssuesService {
 
   async deleteIssue(issueId: string, projectId: string): Promise<void> {
     await this.issueRepository.delete({ id: issueId, projectId });
+  }
+
+  async updateDates(id: string, startDate: string, dueDate: string) {
+    const issue = await this.issueRepository.findOne({ where: { id } });
+    if (!issue) throw new NotFoundException('이슈를 찾을 수 없습니다.');
+    issue.startDate = startDate ? new Date(startDate) : null;
+    issue.dueDate = dueDate ? new Date(dueDate) : null;
+    await this.issueRepository.save(issue);
+    return issue;
   }
 }
