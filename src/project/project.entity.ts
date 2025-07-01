@@ -51,6 +51,10 @@ export class Project {
   @Column({ type: 'timestamptz', nullable: true })
   expires_at: Date;
 
+  // 프로젝트 시작일
+  @Column({ type: 'date', nullable: true })
+  start_date?: Date;
+
   // 관계 설정
   @ManyToOne(() => User, (user) => user.ledProjects)
   @JoinColumn({ name: 'leader_id' })

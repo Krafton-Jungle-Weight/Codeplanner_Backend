@@ -59,7 +59,7 @@ export class IssuesController {
   deleteIssue(
     @Param('issueId') issueId: string,
     @Param('projectId') projectId: string,
-  ) {
+  ) { 
     return this.issuesService.deleteIssue(issueId, projectId);
   }
 
