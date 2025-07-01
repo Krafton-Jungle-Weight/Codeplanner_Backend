@@ -11,14 +11,25 @@ import { EmailModule } from './email/email.module';
 import { DatabaseModule } from './database/database.module';
 import { IssuesModule } from './issues/issues.module';
 import { TimelineModule } from './timeline/timeline.module';
+import { SummaryModule } from './summary/summary.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development',  // 개발 환경시: .env.development 파일 사용, 배포 환경시: .env.production 파일 사용
+      envFilePath:
+        process.env.NODE_ENV === 'production'
+          ? '.env.production'
+          : '.env.development', // 개발 환경시: .env.development 파일 사용, 배포 환경시: .env.production 파일 사용
     }),
-    UserModule, AuthModule, EmailModule, DatabaseModule, IssuesModule, TimelineModule],
+    UserModule,
+    AuthModule,
+    EmailModule,
+    DatabaseModule,
+    IssuesModule,
+    TimelineModule,
+    SummaryModule,
+  ],
   controllers: [AppController, EmailController],
 
   providers: [AppService],
