@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Issue } from './issues.entity';
-import { Repository } from 'typeorm';
+import { createQueryBuilder, Repository } from 'typeorm';
 import { UpdateIssueDto } from './dto/issue-info.dto';
 
 import { CreateIssueDto } from './issues-update.dto';
@@ -102,6 +102,15 @@ export class IssuesService {
 
     return await this.issueRepository.save(issue);
   }
+
+  async getIssuesCurrentUser(userId: string, projectId: string): Promise<Issue[]> {
+    return this.issueRepository
+    .createQueryBuilder('issue')
+    .where('issue.assigneeId = :userId', { userId })
+    .andWhere('issue.projectId = :projectId', { projectId })
+    .getMany();
+  }
+
   async updateIssueOrderAndStatus(
     issueIds: string[],
     targetColumnId: string,
