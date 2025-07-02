@@ -14,7 +14,7 @@ module.exports = {
       env_production: {
         NODE_ENV: 'production',
         PORT: 5000,
-        CORS_ORIGIN: 'http://3.38.25.129,http://3.38.25.129:3000,http://3.38.25.129:5000',
+        CORS_ORIGIN: 'https://code-planner.com,https://code-planner.com:3000,https://code-planner.com:5000',
       },
     },
   ],
