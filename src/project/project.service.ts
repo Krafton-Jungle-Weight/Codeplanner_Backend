@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { Project } from './project.entity';
 import { User } from '../user/user.entity';
 import { ProjectMember } from './project-member.entity';
-import { DataSource } from 'typeorm';
 
 // 프로젝트 서비스
 @Injectable()
@@ -16,7 +15,6 @@ export class ProjectService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(ProjectMember)
     private readonly projectMemberRepo: Repository<ProjectMember>,
-    private readonly dataSource: DataSource,
   ) {}
 
   // 프로젝트 전체 조회
@@ -115,7 +113,7 @@ export class ProjectService {
       await this.addProjectMember(
         savedProject.id,
         projectData.leader_id,
-        'ADMIN',
+        'READER',
       );
     }
 

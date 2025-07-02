@@ -40,6 +40,7 @@ export class IssuesController {
     return { success: 'Issue created successfully' };
   }
 
+<<<<<<< HEAD
   @UseGuards(JwtAuthGuard)  
   @Get('/:projectId/my-issues-count')
   async getMyIssueCount(
@@ -53,6 +54,8 @@ export class IssuesController {
     return { count };
   }
 
+=======
+>>>>>>> 9d8c955c0cee69062baedc74723b0e832efbd6f6
   @UseGuards(JwtAuthGuard)
   @Get('/:projectId/my-issues')
   getMyIssue(

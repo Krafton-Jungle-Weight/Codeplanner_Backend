@@ -26,7 +26,6 @@ export class ProjectController {
   }
 
   // 특정 프로젝트 하나 조회
-  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async getOne(@Param('id') id: string): Promise<ProjectResponseDto> {
     const project = await this.projectService.findOne(id);
@@ -34,8 +33,8 @@ export class ProjectController {
       ...project,
       due_date: project.due_date ? this.formatDate(project.due_date) : null,
       expires_at: project.expires_at
-        ? this.formatDate(project.expires_at)
-        : null,
+      ? this.formatDate(project.expires_at)
+      : null,
     };
   }
 
