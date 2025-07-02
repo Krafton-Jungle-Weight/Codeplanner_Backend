@@ -57,7 +57,7 @@ export class ProjectController {
       due_date: createProjectDto.due_date
         ? new Date(createProjectDto.due_date)
         : undefined,
-      expires_at: undefined,
+      expires_at: new Date(),
     };
 
     const createdProject = await this.projectService.create(projectData);

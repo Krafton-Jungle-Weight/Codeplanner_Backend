@@ -23,11 +23,11 @@ export class EmailService {
       service: 'Gmail',
       auth: {
         user: 'myong2404@gmail.com',
-        pass: 'uzas jmpi wfks ikvh',
+        pass: 'vviu hmcq jgif gagg',
       },
     });
   }
-
+ 
   async sendIssueAllocateEmail(
     assigneeId,
     issueTitle: string,
