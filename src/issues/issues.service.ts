@@ -11,7 +11,7 @@ export class IssuesService {
   constructor(
     @InjectRepository(Issue)
     private issueRepository: Repository<Issue>,
-  ) { }
+  ) {}
 
   // UUID 값을 정리하는 헬퍼 함수
   private cleanUuid(uuid: string | undefined): string | undefined {
@@ -103,12 +103,15 @@ export class IssuesService {
     return await this.issueRepository.save(issue);
   }
 
-  async getIssuesCurrentUser(userId: string, projectId: string): Promise<Issue[]> {
+  async getIssuesCurrentUser(
+    userId: string,
+    projectId: string,
+  ): Promise<Issue[]> {
     return this.issueRepository
-    .createQueryBuilder('issue')
-    .where('issue.assigneeId = :userId', { userId })
-    .andWhere('issue.projectId = :projectId', { projectId })
-    .getMany();
+      .createQueryBuilder('issue')
+      .where('issue.assigneeId = :userId', { userId })
+      .andWhere('issue.projectId = :projectId', { projectId })
+      .getMany();
   }
 
   async updateIssueOrderAndStatus(
