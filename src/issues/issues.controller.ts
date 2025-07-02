@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { IssuesService } from './issues.service';
 import { CreateIssueDto, ReorderIssuesDto } from './issues-update.dto';
 import { UpdateIssueDto } from './dto/issue-info.dto';
@@ -65,8 +56,8 @@ export class IssuesController {
   @UseGuards(JwtAuthGuard)
   @Get('/:projectId/my-issues')
   getMyIssue(
-    @CurrentUser() user: any,
-    @Param('projectId') projectId: string,
+  @CurrentUser() user: any,
+  @Param('projectId') projectId: string,
   ): Promise<Issue[]> {
     return this.issuesService.getIssuesCurrentUser(user.id, projectId);
   }
@@ -92,22 +83,22 @@ export class IssuesController {
   deleteIssue(
     @Param('issueId') issueId: string,
     @Param('projectId') projectId: string,
-  ) { 
+  ) {
     return this.issuesService.deleteIssue(issueId, projectId);
   }
 
   @Post('/issues/:id/update-dates')
   async updateIssueDates(
     @Param('id') id: string,
-    @Body() body: { startDate: string; dueDate: string; projectId: string },
+    @Body() body: { startDate: string, dueDate: string, projectId: string }
   ) {
     return this.issuesService.updateIssueInfo(
-      {
-        startDate: body.startDate ? new Date(body.startDate) : undefined,
-        dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
+      { 
+        startDate: body.startDate ? new Date(body.startDate) : undefined, 
+        dueDate: body.dueDate ? new Date(body.dueDate) : undefined 
       },
       body.projectId,
-      id,
+      id
     );
   }
 }
