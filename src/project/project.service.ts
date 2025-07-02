@@ -9,6 +9,21 @@ import { DataSource } from 'typeorm';
 // 프로젝트 서비스
 @Injectable()
 export class ProjectService {
+  
+  async getProjectSidebar(user: User): Promise<any[]> {
+    const projects = await this.projectRepo
+      .createQueryBuilder('project')
+      .innerJoin('project_member', 'pm', 'pm.project_id = project.id')
+      .leftJoinAndSelect('project.leader', 'leader')
+      .leftJoinAndSelect('project.members', 'members')
+      .where('pm.user_id = :userId', { userId: user.id })
+      .orderBy('project.last_visited_at', 'DESC')
+      .limit(4)
+      .getMany();
+
+    return projects;
+  }
+
   constructor(
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,

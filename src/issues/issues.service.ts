@@ -118,12 +118,15 @@ export class IssuesService {
       .getMany();
   }
 
-  async getIssuesCurrentUserCount(userId: string, projectId: string): Promise<number> {
+  async getIssuesCurrentUserCount(
+    userId: string,
+    projectId: string,
+  ): Promise<number> {
     return this.issueRepository
-    .createQueryBuilder('issue')
-    .where('issue.assigneeId = :userId', { userId })
-    .andWhere('issue.projectId = :projectId', { projectId })
-    .getCount();
+      .createQueryBuilder('issue')
+      .where('issue.assigneeId = :userId', { userId })
+      .andWhere('issue.projectId = :projectId', { projectId })
+      .getCount();
   }
 
   async updateIssueOrderAndStatus(
@@ -146,11 +149,13 @@ export class IssuesService {
     const cleanAssigneeId = this.cleanUuid(dto.assigneeId);
     const cleanReporterId = this.cleanUuid(dto.reporterId);
 
-    this.emailService.sendIssueAllocateEmail(
-      dto.assigneeId,
-      dto.title,
-      projectId,
-    );
+    if (dto.assigneeId) {
+      this.emailService.sendIssueAllocateEmail(
+        dto.assigneeId,
+        dto.title,
+        projectId,
+      );
+    }
     const sql = `
       INSERT INTO issue (project_id, title, description, issue_type, status, assignee_id, reporter_id, start_date, due_date, position)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
