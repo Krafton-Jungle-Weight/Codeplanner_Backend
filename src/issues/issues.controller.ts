@@ -49,7 +49,7 @@ export class IssuesController {
     return { success: 'Issue created successfully' };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)  
   @Get('/:projectId/my-issues-count')
   async getMyIssueCount(
     @CurrentUser() user: any,
