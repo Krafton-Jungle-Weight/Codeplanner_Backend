@@ -4,7 +4,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { IssuesService } from 'src/issues/issues.service';
 
 @UseGuards(JwtAuthGuard)
-@Controller('api')
+@Controller()
 export class SummaryController {
   constructor(
     private readonly summaryService: SummaryService,
