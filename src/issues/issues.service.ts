@@ -1,16 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Issue } from './issues.entity';
 import { createQueryBuilder, Repository } from 'typeorm';
 import { UpdateIssueDto } from './dto/issue-info.dto';
 
 import { CreateIssueDto } from './issues-update.dto';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class IssuesService {
   constructor(
     @InjectRepository(Issue)
     private issueRepository: Repository<Issue>,
+
+    @Inject(EmailService)
+    private readonly emailService: EmailService,
   ) {}
 
   // UUID 값을 정리하는 헬퍼 함수
@@ -134,6 +138,11 @@ export class IssuesService {
     const cleanAssigneeId = this.cleanUuid(dto.assigneeId);
     const cleanReporterId = this.cleanUuid(dto.reporterId);
 
+    this.emailService.sendIssueAllocateEmail(
+      dto.assigneeId,
+      dto.title,
+      projectId,
+    );
     const sql = `
       INSERT INTO issue (project_id, title, description, issue_type, status, assignee_id, reporter_id, start_date, due_date, position)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
