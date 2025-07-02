@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { 
+  Body, 
+  Controller, 
+  Delete, 
+  Get, 
+  Param, 
+  Patch, 
+  Post, 
+  UseGuards 
+} from '@nestjs/common';
 import { IssuesService } from './issues.service';
 import { CreateIssueDto, ReorderIssuesDto } from './issues-update.dto';
 import { UpdateIssueDto } from './dto/issue-info.dto';
@@ -40,7 +49,6 @@ export class IssuesController {
     return { success: 'Issue created successfully' };
   }
 
-<<<<<<< HEAD
   @UseGuards(JwtAuthGuard)  
   @Get('/:projectId/my-issues-count')
   async getMyIssueCount(
@@ -54,8 +62,6 @@ export class IssuesController {
     return { count };
   }
 
-=======
->>>>>>> 9d8c955c0cee69062baedc74723b0e832efbd6f6
   @UseGuards(JwtAuthGuard)
   @Get('/:projectId/my-issues')
   getMyIssue(
