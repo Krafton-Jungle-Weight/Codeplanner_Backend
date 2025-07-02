@@ -36,7 +36,8 @@ export class IssuesController {
     @Body() dto: CreateIssueDto,
   ) {
     console.log(projectId, dto);
-    await this.issuesService.createIssue(projectId, dto);
+     await this.issuesService.createIssue(projectId, dto);
+    
     return { success: 'Issue created successfully' };
   }
 

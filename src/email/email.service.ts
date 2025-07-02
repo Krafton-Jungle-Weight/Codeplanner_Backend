@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 
 import * as Mail from 'nodemailer/lib/mailer';
 import * as nodemailer from 'nodemailer';
+import { User } from 'src/user/user.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
 interface EmailOptions {
   to: string;
@@ -12,14 +15,45 @@ interface EmailOptions {
 @Injectable()
 export class EmailService {
   private transporter: Mail;
+
+  @InjectRepository(User)
+  private userRepository: Repository<User>;
   constructor() {
     this.transporter = nodemailer.createTransport({
       service: 'Gmail',
       auth: {
         user: 'myong2404@gmail.com',
-        pass: 'uzas jmpi wfks ikvh',
+        pass: 'vviu hmcq jgif gagg',
       },
     });
+  }
+ 
+  async sendIssueAllocateEmail(
+    assigneeId,
+    issueTitle: string,
+    projectId: string,
+  ) {
+    const baseUrl = process.env.BASE_URL;
+    const url = `${baseUrl}/projects/${projectId}/board`;
+    console.log(url);
+
+    const user = await this.userRepository.findOne({
+      where: { id: assigneeId },
+    });
+    const emailAddress = user?.email;
+
+    const mailOptions: EmailOptions = {
+      to: emailAddress ?? '',
+      subject: '이슈 할당 알림',
+      html: `
+        <h1>이슈 할당 알림</h1>
+        <p>이슈가 할당되었습니다.</p>
+        <p>이슈 제목: ${issueTitle}</p>
+        <p>이슈 링크: <a href="${url}">${url}</a></p>
+      `,
+    };
+
+    return await this.transporter.sendMail(mailOptions);
   }
 
   async sendMemberJoinVerification(

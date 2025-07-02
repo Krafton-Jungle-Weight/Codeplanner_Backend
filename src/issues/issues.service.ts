@@ -1,17 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Issue } from './issues.entity';
 import { createQueryBuilder, Repository } from 'typeorm';
 import { UpdateIssueDto } from './dto/issue-info.dto';
 
 import { CreateIssueDto } from './issues-update.dto';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class IssuesService {
   constructor(
     @InjectRepository(Issue)
     private issueRepository: Repository<Issue>,
-  ) { }
+
+    @Inject(EmailService)
+    private readonly emailService: EmailService,
+  ) {}
 
   // UUID 값을 정리하는 헬퍼 함수
   private cleanUuid(uuid: string | undefined): string | undefined {
@@ -103,20 +107,26 @@ export class IssuesService {
     return await this.issueRepository.save(issue);
   }
 
-  async getIssuesCurrentUser(userId: string, projectId: string): Promise<Issue[]> {
+  async getIssuesCurrentUser(
+    userId: string,
+    projectId: string,
+  ): Promise<Issue[]> {
     return this.issueRepository
-    .createQueryBuilder('issue')
-    .where('issue.assigneeId = :userId', { userId })
-    .andWhere('issue.projectId = :projectId', { projectId })
-    .getMany();
+      .createQueryBuilder('issue')
+      .where('issue.assigneeId = :userId', { userId })
+      .andWhere('issue.projectId = :projectId', { projectId })
+      .getMany();
   }
 
-  async getIssuesCurrentUserCount(userId: string, projectId: string): Promise<number> {
+  async getIssuesCurrentUserCount(
+    userId: string,
+    projectId: string,
+  ): Promise<number> {
     return this.issueRepository
-    .createQueryBuilder('issue')
-    .where('issue.assigneeId = :userId', { userId })
-    .andWhere('issue.projectId = :projectId', { projectId })
-    .getCount();
+      .createQueryBuilder('issue')
+      .where('issue.assigneeId = :userId', { userId })
+      .andWhere('issue.projectId = :projectId', { projectId })
+      .getCount();
   }
 
   async updateIssueOrderAndStatus(
@@ -139,6 +149,13 @@ export class IssuesService {
     const cleanAssigneeId = this.cleanUuid(dto.assigneeId);
     const cleanReporterId = this.cleanUuid(dto.reporterId);
 
+    if (dto.assigneeId) {
+      this.emailService.sendIssueAllocateEmail(
+        dto.assigneeId,
+        dto.title,
+        projectId,
+      );
+    }
     const sql = `
       INSERT INTO issue (project_id, title, description, issue_type, status, assignee_id, reporter_id, start_date, due_date, position)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
