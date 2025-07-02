@@ -9,10 +9,15 @@ import { Issue } from 'src/issues/issues.entity';
 // 인증 모듈
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AuthModule } from 'src/auth/auth.module';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
   providers: [SummaryService, JwtAuthGuard, IssuesService],
   controllers: [SummaryController],
-  imports: [TypeOrmModule.forFeature([ProjectMember, Issue]), AuthModule],
+  imports: [
+    TypeOrmModule.forFeature([ProjectMember, Issue]),
+    AuthModule,
+    EmailModule,
+  ],
 })
 export class SummaryModule {}

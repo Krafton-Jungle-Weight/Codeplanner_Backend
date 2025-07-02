@@ -4,19 +4,19 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { IssuesService } from 'src/issues/issues.service';
 
 @UseGuards(JwtAuthGuard)
-@Controller('api')
+@Controller('summary')
 export class SummaryController {
   constructor(
     private readonly summaryService: SummaryService,
     private readonly issuesService: IssuesService,
   ) {}
 
-  @Get('summary/:projectId/issues')
+  @Get('/:projectId/issues')
   async getSummary(@Param('projectId') projectId: string) {
     return await this.issuesService.getIssues(projectId);
   }
 
-  @Get('summary/:projectId/members')
+  @Get('/:projectId/members')
   async getMembers(@Param('projectId') projectId: string) {
     console.log(projectId);
     return await this.summaryService.getMembers(projectId);

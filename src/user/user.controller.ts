@@ -15,7 +15,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 import { UpdateUserDisplayNameDto } from './dto/update-user-displayname.dto';
 
-@Controller('User')
+@Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -69,5 +69,12 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   async isVerified(@CurrentUser() user: any) {
     return await this.userService.isVerified(user.id);
+  }
+
+  // 전체 유저 목록 조회 (팀원 초대용)
+  @Get('/users')
+  @UseGuards(JwtAuthGuard)
+  async getAllUsers() {
+    return await this.userService.getAllUsers();
   }
 }
