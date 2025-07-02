@@ -17,7 +17,7 @@ import { CurrentUser } from 'src/auth/user.decorator';
 
 
 
-Controller('projects')
+@Controller('projects')
 export class IssuesController {
   constructor(private readonly issuesService: IssuesService) {}
 
@@ -51,8 +51,8 @@ export class IssuesController {
     return { success: 'Issue created successfully' };
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('/projects/:projectId/my-issues-count')
+  @UseGuards(JwtAuthGuard)  
+  @Get('/:projectId/my-issues-count')
   async getMyIssueCount(
     @CurrentUser() user: any,
     @Param('projectId') projectId: string,
@@ -65,7 +65,7 @@ export class IssuesController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('/projects/:projectId/my-issues')
+  @Get('/:projectId/my-issues')
   getMyIssue(
     @CurrentUser() user: any,
     @Param('projectId') projectId: string,
@@ -109,7 +109,7 @@ export class IssuesController {
         dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
       },
       body.projectId,
-      id,
+      id
     );
   }
 }
