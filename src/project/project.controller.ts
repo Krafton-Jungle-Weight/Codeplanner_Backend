@@ -34,8 +34,8 @@ export class ProjectController {
       ...project,
       due_date: project.due_date ? this.formatDate(project.due_date) : null,
       expires_at: project.expires_at
-        ? this.formatDate(project.expires_at)
-        : null,
+      ? this.formatDate(project.expires_at)
+      : null,
     };
   }
 
