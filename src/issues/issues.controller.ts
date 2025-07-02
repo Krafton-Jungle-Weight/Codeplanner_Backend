@@ -40,6 +40,19 @@ export class IssuesController {
     return { success: 'Issue created successfully' };
   }
 
+  @UseGuards(JwtAuthGuard)  
+  @Get('/:projectId/my-issues-count')
+  async getMyIssueCount(
+    @CurrentUser() user: any,
+    @Param('projectId') projectId: string,
+  ): Promise<{ count: number }> {
+    const count = await this.issuesService.getIssuesCurrentUserCount(
+      user.id,
+      projectId,
+    );
+    return { count };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('/:projectId/my-issues')
   getMyIssue(

@@ -165,4 +165,12 @@ export class UserService {
     }
     return user.is_verified;
   }
+
+  // 전체 유저 목록 조회 (팀원 초대용)
+  async getAllUsers() {
+    return this.userRepository.find({
+      select: ['id', 'email', 'display_name'],
+    });
+  }
 }
+
