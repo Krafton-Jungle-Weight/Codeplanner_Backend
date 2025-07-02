@@ -1,10 +1,9 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { ProjectService } from './project.service';
 import { CreateProjectDto, ProjectResponseDto } from './dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 import { User } from 'src/user/user.entity';
-import { Project } from './project.entity';
 
 // 프로젝트 컨트롤러
 @Controller('/projects')
@@ -26,7 +25,6 @@ export class ProjectController {
   }
 
   // 특정 프로젝트 하나 조회
-  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async getOne(@Param('id') id: string): Promise<ProjectResponseDto> {
     const project = await this.projectService.findOne(id);
@@ -147,23 +145,6 @@ export class ProjectController {
     return this.projectService.removeMember(id, userId);
   }
 
-  // 프로젝트 리더 변경
-  @Patch(':id/leader')
-  @UseGuards(JwtAuthGuard)
-  async changeLeader(
-    @Param('id') id: string,
-    @Body() body: { leader_id: string },
-    @CurrentUser() user: User
-  ) {
-    return this.projectService.changeLeader(id, body.leader_id);
-  }
-
-  // 프로젝트 삭제
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  async deleteProject(@Param('id') id: string) {
-    return this.projectService.deleteProject(id);
-  }
 
   // 날짜 포맷팅
   private formatDate(date: Date | string): string {

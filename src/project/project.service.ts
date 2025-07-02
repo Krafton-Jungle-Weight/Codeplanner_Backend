@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { Project } from './project.entity';
 import { User } from '../user/user.entity';
 import { ProjectMember } from './project-member.entity';
-import { DataSource } from 'typeorm';
 
 // 프로젝트 서비스
 @Injectable()
@@ -16,7 +15,6 @@ export class ProjectService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(ProjectMember)
     private readonly projectMemberRepo: Repository<ProjectMember>,
-    private readonly dataSource: DataSource,
   ) {}
 
   // 프로젝트 전체 조회
@@ -115,7 +113,7 @@ export class ProjectService {
       await this.addProjectMember(
         savedProject.id,
         projectData.leader_id,
-        'ADMIN',
+        'READER',
       );
     }
 
@@ -155,6 +153,7 @@ export class ProjectService {
     userId: string,
     role: string = 'MEMBER',
   ): Promise<void> {
+
        // 이미 멤버인지 확인
     const existingMember = await this.projectMemberRepo.findOne({
       where: { project_id: projectId, user_id: userId },
@@ -293,4 +292,5 @@ export class ProjectService {
     await this.projectRepo.delete(id);
     return { message: '프로젝트가 삭제되었습니다.' };
   }
+
 }
