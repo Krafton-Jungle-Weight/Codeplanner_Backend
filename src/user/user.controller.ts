@@ -70,4 +70,11 @@ export class UserController {
   async isVerified(@CurrentUser() user: any) {
     return await this.userService.isVerified(user.id);
   }
+
+  // 전체 유저 목록 조회 (팀원 초대용)
+  @Get('/users')
+  @UseGuards(JwtAuthGuard)
+  async getAllUsers() {
+    return await this.userService.getAllUsers();
+  }
 }
