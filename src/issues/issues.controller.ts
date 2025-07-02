@@ -15,8 +15,6 @@ import { Issue } from './issues.entity';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 
-
-
 @Controller('projects')
 export class IssuesController {
   constructor(private readonly issuesService: IssuesService) {}
@@ -109,7 +107,7 @@ export class IssuesController {
         dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
       },
       body.projectId,
-      id
+      id,
     );
   }
 }
