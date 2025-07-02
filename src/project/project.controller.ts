@@ -26,6 +26,7 @@ export class ProjectController {
   }
 
   // 특정 프로젝트 하나 조회
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async getOne(@Param('id') id: string): Promise<ProjectResponseDto> {
     const project = await this.projectService.findOne(id);
