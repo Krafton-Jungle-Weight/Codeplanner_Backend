@@ -44,6 +44,7 @@ export class IssuesService {
   }
 
   async getIssues(projectId: string) {
+    console.log('getIssues projectId', projectId);
     return await this.issueRepository.find({
       where: { projectId },
       order: { position: 'ASC' },

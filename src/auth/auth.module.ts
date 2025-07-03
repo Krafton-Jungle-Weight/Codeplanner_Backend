@@ -7,6 +7,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { User } from 'src/user/user.entity';
 import { EmailVerificationToken } from 'src/email/email.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { GithubToken } from 'src/github/github.entity';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       secret: 'your-secret-key-here',
       signOptions: { expiresIn: '1h' },
     }),
-    TypeOrmModule.forFeature([User, EmailVerificationToken]),
+    TypeOrmModule.forFeature([User, EmailVerificationToken, GithubToken]),
   ],
   controllers: [AuthController],
   providers: [EmailService, AuthService, UserService],
