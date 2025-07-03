@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
+  Query,
   Res,
   UnprocessableEntityException,
   UseGuards,
@@ -16,6 +18,9 @@ import { User } from 'src/user/user.entity';
 import * as bcrypt from 'bcrypt';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
+import { GithubOauthDto } from './dto/github-oauth.dto';
+import axios from 'axios';
+import { GithubToken } from 'src/github/github.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -24,6 +29,8 @@ export class AuthController {
     private readonly authService: AuthService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(GithubToken)
+    private githubTokenRepository: Repository<GithubToken>,
   ) {}
 
   @Post('/login')
@@ -68,5 +75,31 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('/github-oauth')
-  async githubOauth(@CurrentUser() user: User) {}
+  async githubOauth(
+    @Body() input: GithubOauthDto,
+    @CurrentUser() user: User,
+    @Res() res: Response,
+  ) {
+    const code = input.code;
+    const client_id = process.env.GITHUB_CLIENT_ID;
+    const client_secret = process.env.GITHUB_CLIENT_SECRET;
+    const tokenResponse = await axios.post(
+      'https://github.com/login/oauth/access_token',
+      { client_id, code, client_secret },
+      { headers: { Accept: 'application/json' } },
+    );
+    console.log('response', tokenResponse.data);
+    const userId = user.id;
+    console.log('userId', userId);
+    const githubToken = new GithubToken();
+    githubToken.user_id = userId;
+    githubToken.provider = 'github';
+    githubToken.provider_user_id = user.email;
+    githubToken.access_token = tokenResponse.data.access_token;
+    githubToken.connected_at = new Date();
+    await this.githubTokenRepository.save(githubToken);
+    return res.status(200).json({
+      message: '깃허브 로그인 성공',
+    });
+  }
 }

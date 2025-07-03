@@ -12,6 +12,7 @@ import { DatabaseModule } from './database/database.module';
 import { IssuesModule } from './issues/issues.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { SummaryModule } from './summary/summary.module';
+import { GithubModule } from './github/github.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { SummaryModule } from './summary/summary.module';
     IssuesModule,
     TimelineModule,
     SummaryModule,
+    GithubModule,
   ],
   controllers: [AppController, EmailController],
 

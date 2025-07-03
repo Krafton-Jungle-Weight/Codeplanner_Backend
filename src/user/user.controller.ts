@@ -14,10 +14,17 @@ import { VerifyEmailDto } from 'src/email/dto/verify-email.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 import { UpdateUserDisplayNameDto } from './dto/update-user-displayname.dto';
+import { GithubToken } from 'src/github/github.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    @InjectRepository(GithubToken)
+    private githubTokenRepository: Repository<GithubToken>,
+  ) {}
 
   // 회원가입
   @Post('/create')
@@ -78,5 +85,15 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   async getAllUsers() {
     return await this.userService.getAllUsers();
+  }
+
+  @Get('mypage/isGithubConnected')
+  @UseGuards(JwtAuthGuard)
+  async isGithubConnected(@CurrentUser() user: any) {
+    const githubToken = await this.githubTokenRepository.findOne({
+      where: { provider_user_id: user.email },
+    });
+    const isConnected = githubToken ? true : false;
+    return { isConnected };
   }
 }
