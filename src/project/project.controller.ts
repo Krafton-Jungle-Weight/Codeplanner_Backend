@@ -30,6 +30,7 @@ export class ProjectController {
   @Get(':id')
   async getOne(@Param('id') id: string): Promise<ProjectResponseDto> {
     const project = await this.projectService.findOne(id);
+    console.log('project', project);
     return {
       ...project,
       due_date: project.due_date ? this.formatDate(project.due_date) : null,
