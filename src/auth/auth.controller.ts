@@ -4,6 +4,7 @@ import {
   Post,
   Res,
   UnprocessableEntityException,
+  UseGuards,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Response } from 'express';
@@ -13,6 +14,8 @@ import { LoginUserDto } from './dto/login-auth.dto';
 import { Repository } from 'typeorm';
 import { User } from 'src/user/user.entity';
 import * as bcrypt from 'bcrypt';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { CurrentUser } from 'src/auth/user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -62,4 +65,8 @@ export class AuthController {
     res.clearCookie('refreshToken');
     return res.status(200).json({ message: '로그아웃 성공' });
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('/github-oauth')
+  async githubOauth(@CurrentUser() user: User) {}
 }
