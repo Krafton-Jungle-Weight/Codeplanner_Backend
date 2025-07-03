@@ -31,6 +31,8 @@ export class UserController {
     @Query('email') email: string,
     @Query('verifyToken') verifyToken: string,
   ) {
+    console.log('email', email);
+    console.log('verifyToken', verifyToken);
     return await this.userService.verifyEmail(email, verifyToken);
   }
 
