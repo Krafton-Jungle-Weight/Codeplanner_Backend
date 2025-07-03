@@ -9,6 +9,7 @@ import { DataSource } from 'typeorm';
 // 프로젝트 서비스
 @Injectable()
 export class ProjectService {
+
   async getProjectSidebar(user: User): Promise<any[]> {
     const projects = await this.projectRepo
       .createQueryBuilder('project')
@@ -169,7 +170,7 @@ export class ProjectService {
     userId: string,
     role: string = 'MEMBER',
   ): Promise<void> {
-    // 이미 멤버인지 확인
+       // 이미 멤버인지 확인
     const existingMember = await this.projectMemberRepo.findOne({
       where: { project_id: projectId, user_id: userId },
     });
@@ -186,7 +187,7 @@ export class ProjectService {
     await this.projectMemberRepo.save(projectMember);
   }
 
-  // 프로젝트 팀원 목록 조회
+    // 프로젝트 팀원 목록 조회
   async getMembers(projectId: string) {
     const members = await this.projectMemberRepo
       .createQueryBuilder('pm')

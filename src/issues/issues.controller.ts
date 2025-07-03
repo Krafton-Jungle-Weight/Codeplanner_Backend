@@ -60,8 +60,8 @@ export class IssuesController {
   @UseGuards(JwtAuthGuard)
   @Get('/:projectId/my-issues')
   getMyIssue(
-    @CurrentUser() user: any,
-    @Param('projectId') projectId: string,
+  @CurrentUser() user: any,
+  @Param('projectId') projectId: string,
   ): Promise<Issue[]> {
     return this.issuesService.getIssuesCurrentUser(user.id, projectId);
   }
@@ -94,15 +94,15 @@ export class IssuesController {
   @Post('/issues/:id/update-dates')
   async updateIssueDates(
     @Param('id') id: string,
-    @Body() body: { startDate: string; dueDate: string; projectId: string },
+    @Body() body: { startDate: string, dueDate: string, projectId: string }
   ) {
     return this.issuesService.updateIssueInfo(
-      {
-        startDate: body.startDate ? new Date(body.startDate) : undefined,
-        dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
+      { 
+        startDate: body.startDate ? new Date(body.startDate) : undefined, 
+        dueDate: body.dueDate ? new Date(body.dueDate) : undefined 
       },
       body.projectId,
-      id,
+      id
     );
   }
 }
