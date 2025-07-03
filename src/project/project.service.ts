@@ -9,7 +9,7 @@ import { DataSource } from 'typeorm';
 // 프로젝트 서비스
 @Injectable()
 export class ProjectService {
-  
+
   async getProjectSidebar(user: User): Promise<any[]> {
     const projects = await this.projectRepo
       .createQueryBuilder('project')
@@ -195,7 +195,7 @@ export class ProjectService {
       .where('pm.project_id = :projectId', { projectId })
       .getMany();
 
-    return members.map(member => ({
+    return members.map((member) => ({
       id: member.user.id,
       display_name: member.user.display_name,
       email: member.user.email,
@@ -215,7 +215,10 @@ export class ProjectService {
         .createQueryBuilder()
         .update(ProjectMember)
         .set({ role })
-        .where('project_id = :projectId AND user_id = :userId', { projectId, userId })
+        .where('project_id = :projectId AND user_id = :userId', {
+          projectId,
+          userId,
+        })
         .execute();
 
       await queryRunner.commitTransaction();
@@ -237,13 +240,13 @@ export class ProjectService {
     try {
       // 프로젝트 리더는 제거할 수 없음
       const project = await queryRunner.manager.findOne(Project, {
-        where: { id: projectId }
+        where: { id: projectId },
       });
-      
+
       if (!project) {
         throw new Error('프로젝트를 찾을 수 없습니다.');
       }
-      
+
       if (project.leader_id === userId) {
         throw new Error('프로젝트 리더는 제거할 수 없습니다.');
       }
@@ -253,7 +256,10 @@ export class ProjectService {
         .createQueryBuilder()
         .delete()
         .from(ProjectMember)
-        .where('project_id = :projectId AND user_id = :userId', { projectId, userId })
+        .where('project_id = :projectId AND user_id = :userId', {
+          projectId,
+          userId,
+        })
         .execute();
 
       await queryRunner.commitTransaction();
@@ -275,7 +281,7 @@ export class ProjectService {
     try {
       // 새 리더가 프로젝트 멤버인지 확인
       const member = await queryRunner.manager.findOne(ProjectMember, {
-        where: { project_id: projectId, user_id: newLeaderId }
+        where: { project_id: projectId, user_id: newLeaderId },
       });
 
       if (!member) {
@@ -308,4 +314,6 @@ export class ProjectService {
     await this.projectRepo.delete(id);
     return { message: '프로젝트가 삭제되었습니다.' };
   }
+
+  
 }

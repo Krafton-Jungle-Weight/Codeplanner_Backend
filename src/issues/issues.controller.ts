@@ -5,6 +5,7 @@ import { UpdateIssueDto } from './dto/issue-info.dto';
 import { Issue } from './issues.entity';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
+import { User } from 'src/user/user.entity';
 
 @Controller('projects')
 export class IssuesController {
@@ -30,13 +31,15 @@ export class IssuesController {
     return { success: 'Issue order and status updated successfully' };
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('/:projectId/issues/create')
   async createIssue(
     @Param('projectId') projectId: string,
     @Body() dto: CreateIssueDto,
+    @CurrentUser() user: User,
   ) {
     console.log(projectId, dto);
-     await this.issuesService.createIssue(projectId, dto);
+     await this.issuesService.createIssue(projectId, dto, user);
     
     return { success: 'Issue created successfully' };
   }
