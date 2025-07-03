@@ -10,7 +10,8 @@ import { User } from 'src/user/user.entity';
 @Controller('projects')
 export class IssuesController {
   constructor(private readonly issuesService: IssuesService) {}
-
+  
+  @UseGuards(JwtAuthGuard)
   @Get('/:projectId/issues')
   getIssues(@Param('projectId') projectId: string) {
     return this.issuesService.getIssues(projectId);
