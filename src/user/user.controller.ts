@@ -26,11 +26,13 @@ export class UserController {
   }
 
   // 이메일 인증
-  @Get('/email-verify')
+  @Get('/email-verify/:email/:verifyToken')
   async verifyEmail(
-    @Query('email') email: string,
-    @Query('verifyToken') verifyToken: string,
+    @Param('email') email: string,
+    @Param('verifyToken') verifyToken: string,
   ) {
+    console.log('email', email);
+    console.log('verifyToken', verifyToken);
     return await this.userService.verifyEmail(email, verifyToken);
   }
 
