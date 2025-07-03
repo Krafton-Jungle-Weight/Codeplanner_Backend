@@ -9,6 +9,7 @@ import { DataSource } from 'typeorm';
 // 프로젝트 서비스
 @Injectable()
 export class ProjectService {
+
   async getProjectSidebar(user: User): Promise<any[]> {
     const projects = await this.projectRepo
       .createQueryBuilder('project')
