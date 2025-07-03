@@ -6,6 +6,7 @@ import { UpdateIssueDto } from './dto/issue-info.dto';
 
 import { CreateIssueDto } from './issues-update.dto';
 import { EmailService } from 'src/email/email.service';
+import { User } from 'src/user/user.entity';
 
 @Injectable()
 export class IssuesService {
@@ -144,10 +145,11 @@ export class IssuesService {
     await this.issueRepository.query(sql, [issueIds, targetColumnId]);
   }
 
-  async createIssue(projectId: string, dto: CreateIssueDto): Promise<void> {
+  
+  async createIssue(projectId: string, dto: CreateIssueDto, user: User): Promise<void> {
     // UUID 값들을 정리
     const cleanAssigneeId = this.cleanUuid(dto.assigneeId);
-    const cleanReporterId = this.cleanUuid(dto.reporterId);
+    const cleanReporterId = user.id;
 
     if (dto.assigneeId) {
       this.emailService.sendIssueAllocateEmail(

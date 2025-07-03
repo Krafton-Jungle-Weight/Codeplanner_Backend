@@ -96,4 +96,10 @@ export class UserController {
     const isConnected = githubToken ? true : false;
     return { isConnected };
   }
+
+  @Get('/me')
+  @UseGuards(JwtAuthGuard)
+  async getCurrentUser(@CurrentUser() user: any) {
+    return user;
+  }
 }

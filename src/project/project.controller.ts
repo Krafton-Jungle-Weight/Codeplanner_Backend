@@ -30,12 +30,13 @@ export class ProjectController {
   @Get(':id')
   async getOne(@Param('id') id: string): Promise<ProjectResponseDto> {
     const project = await this.projectService.findOne(id);
+    console.log('project', project);
     return {
       ...project,
       due_date: project.due_date ? this.formatDate(project.due_date) : null,
       expires_at: project.expires_at
-      ? this.formatDate(project.expires_at)
-      : null,
+        ? this.formatDate(project.expires_at)
+        : null,
     };
   }
 
@@ -87,10 +88,10 @@ export class ProjectController {
   async updateProject(
     @Param('id') id: string,
     @Body() body: Partial<Project>,
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
   ): Promise<ProjectResponseDto> {
     // 권한 체크 등 필요시 추가
-    const updated= await this.projectService.update(id, body);
+    const updated = await this.projectService.update(id, body);
     return {
       id: updated.id,
       title: updated.title,
@@ -98,8 +99,12 @@ export class ProjectController {
       project_key: updated.project_key,
       status: updated.status,
       repository_url: updated.repository_url,
-      due_date: updated.due_date ? this.formatDate(updated.due_date) : undefined,
-      expires_at: updated.expires_at ? this.formatDate(updated.expires_at) : undefined,
+      due_date: updated.due_date
+        ? this.formatDate(updated.due_date)
+        : undefined,
+      expires_at: updated.expires_at
+        ? this.formatDate(updated.expires_at)
+        : undefined,
       leader_id: updated.leader_id,
       project_people: updated.members?.length || 0,
       project_leader: updated.leader?.display_name || 'Unknown',
@@ -110,6 +115,7 @@ export class ProjectController {
   @Get(':id/members')
   @UseGuards(JwtAuthGuard)
   async getProjectMembers(@Param('id') id: string) {
+    // console.log('getProjectMembers id', id);
     return this.projectService.getMembers(id);
   }
 
@@ -119,7 +125,7 @@ export class ProjectController {
   async inviteMember(
     @Param('id') id: string,
     @Body() body: { userId: string; role: string },
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
   ) {
     return this.projectService.addProjectMember(id, body.userId, body.role);
   }
@@ -131,7 +137,7 @@ export class ProjectController {
     @Param('id') id: string,
     @Param('userId') userId: string,
     @Body() body: { role: string },
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
   ) {
     return this.projectService.changeMemberRole(id, userId, body.role);
   }
@@ -142,7 +148,7 @@ export class ProjectController {
   async removeMember(
     @Param('id') id: string,
     @Param('userId') userId: string,
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
   ) {
     return this.projectService.removeMember(id, userId);
   }
@@ -153,7 +159,7 @@ export class ProjectController {
   async changeLeader(
     @Param('id') id: string,
     @Body() body: { leader_id: string },
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
   ) {
     return this.projectService.changeLeader(id, body.leader_id);
   }
@@ -184,4 +190,6 @@ export class ProjectController {
     const timestamp = Date.now().toString().slice(-3);
     return `${prefix}${timestamp}`;
   }
+
+  
 }
