@@ -77,4 +77,10 @@ export class UserController {
   async getAllUsers() {
     return await this.userService.getAllUsers();
   }
+
+  @Get('/me')
+  @UseGuards(JwtAuthGuard)
+  async getCurrentUser(@CurrentUser() user: any) {
+    return user;
+  }
 }
