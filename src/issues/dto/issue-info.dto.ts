@@ -7,4 +7,5 @@ export class UpdateIssueDto {
   reporterId?: string | null;
   startDate?: Date | null;
   dueDate?: Date | null;
+  tag?: string | null;
 }

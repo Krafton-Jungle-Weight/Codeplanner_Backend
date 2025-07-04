@@ -55,6 +55,14 @@ export class Project {
   // @Column({ type: 'timestamptz', nullable: true })
   // last_visited_at: Date;
 
+  // 프로젝트 태그 (고유한 값)
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  tag: string;
+
+  // 태그에 붙을 번호 (기본값 0)
+  @Column({ type: 'int', default: 0, nullable: true })
+  tag_number: number;
+
   // 관계 설정
   @ManyToOne(() => User, (user) => user.ledProjects)
   @JoinColumn({ name: 'leader_id' })
