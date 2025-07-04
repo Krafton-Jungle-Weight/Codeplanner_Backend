@@ -10,6 +10,7 @@ import { Issue } from 'src/issues/issues.entity';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AuthModule } from 'src/auth/auth.module';
 import { EmailModule } from 'src/email/email.module';
+import { ProjectModule } from 'src/project/project.module';
 
 @Module({
   providers: [SummaryService, JwtAuthGuard, IssuesService],
@@ -18,6 +19,7 @@ import { EmailModule } from 'src/email/email.module';
     TypeOrmModule.forFeature([ProjectMember, Issue]),
     AuthModule,
     EmailModule,
+    ProjectModule,
   ],
 })
 export class SummaryModule {}
