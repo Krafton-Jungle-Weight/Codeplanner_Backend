@@ -5,6 +5,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { GithubToken } from './github.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { User } from 'src/user/user.entity';
 import { CurrentUser } from 'src/auth/user.decorator';
 
 @UseGuards(JwtAuthGuard)
@@ -16,6 +17,19 @@ export class GithubController {
     @InjectRepository(GithubToken)
     private githubTokenRepository: Repository<GithubToken>,
   ) {}
+    
+  @UseGuards(JwtAuthGuard)
+  @Get('connect/:repoUrl')
+  async connectWebhook(@Param('repoUrl') repoUrl: string, @CurrentUser() user: User) {
+    const decodedRepoUrl = decodeURIComponent(repoUrl);
+    return this.githubService.connect(decodedRepoUrl, user);
+  }
+
+
+  @Post('webhook')
+  async webhook(@Body() body: any) {
+    console.log('webhook', body);
+  }
 
   @Get('repos/:owner/:repo')
   getRepo(@Param('owner') owner: string, @Param('repo') repo: string) {
@@ -95,6 +109,7 @@ export class GithubController {
     const owner = match[1];
     const repo = match[2];
     return this.githubService.getPulls(owner, repo);
+
   }
 
   @Post('project/:projectId/create-pull-request')

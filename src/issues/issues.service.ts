@@ -7,15 +7,20 @@ import { UpdateIssueDto } from './dto/issue-info.dto';
 import { CreateIssueDto } from './issues-update.dto';
 import { EmailService } from 'src/email/email.service';
 import { User } from 'src/user/user.entity';
+import { ProjectService } from 'src/project/project.service';
 
 @Injectable()
 export class IssuesService {
+  
   constructor(
     @InjectRepository(Issue)
     private issueRepository: Repository<Issue>,
 
     @Inject(EmailService)
     private readonly emailService: EmailService,
+
+    @Inject(ProjectService)
+    private readonly projectService: ProjectService,
   ) {}
 
   // UUID 값을 정리하는 헬퍼 함수
@@ -151,7 +156,7 @@ export class IssuesService {
     // UUID 값들을 정리
     const cleanAssigneeId = this.cleanUuid(dto.assigneeId);
     const cleanReporterId = user.id;
-
+    console.log('dto', dto);
     if (dto.assigneeId) {
       this.emailService.sendIssueAllocateEmail(
         dto.assigneeId,
@@ -160,8 +165,8 @@ export class IssuesService {
       );
     }
     const sql = `
-      INSERT INTO issue (project_id, title, description, issue_type, status, assignee_id, reporter_id, start_date, due_date, position)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO issue (project_id, title, description, issue_type, status, assignee_id, reporter_id, start_date, due_date, position, tag)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     `;
     await this.issueRepository.query(sql, [
       projectId,
@@ -174,7 +179,10 @@ export class IssuesService {
       dto.startDate,
       dto.dueDate,
       dto.position,
+      dto.tag,
     ]);
+
+    await this.projectService.updateProjectTagNumber(projectId);
   }
 
   async deleteIssue(issueId: string, projectId: string): Promise<void> {
