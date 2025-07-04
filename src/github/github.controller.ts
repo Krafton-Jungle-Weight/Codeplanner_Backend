@@ -1,7 +1,11 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { GithubService } from './github.service';
 import { ProjectService } from '../project/project.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { GithubToken } from './github.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CurrentUser } from 'src/auth/user.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('github')
@@ -9,6 +13,8 @@ export class GithubController {
   constructor(
     private readonly githubService: GithubService,
     private readonly projectService: ProjectService,
+    @InjectRepository(GithubToken)
+    private githubTokenRepository: Repository<GithubToken>,
   ) {}
 
   @Get('repos/:owner/:repo')
@@ -89,5 +95,14 @@ export class GithubController {
     const owner = match[1];
     const repo = match[2];
     return this.githubService.getPulls(owner, repo);
+  }
+
+  @Post('project/:projectId/create-pull-request')
+  async createPullRequest(
+    @CurrentUser() user: any,
+    @Param('projectId') projectId: string,
+    @Body() body: any,
+  ) {
+    return await this.githubService.createPullRequest(user.id, projectId, body);
   }
 }

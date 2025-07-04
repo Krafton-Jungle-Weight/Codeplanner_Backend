@@ -1,11 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { GithubToken } from './github.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import axios from 'axios';
 
 @Injectable()
 export class GithubService {
   private readonly githubApiUrl = 'https://api.github.com';
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    @InjectRepository(GithubToken)
+    private githubTokenRepository: Repository<GithubToken>,
+  ) {}
 
   private getHeaders() {
     return {
@@ -18,7 +26,7 @@ export class GithubService {
    * 깃허브 저장소 정보를 가져오는 메서드입니다.
    * @param owner 깃허브 저장소 소유자 (예: 사용자명 또는 조직명)
    * @param repo 깃허브 저장소 이름
-   * 
+   *
    * owner와 repo는 컨트롤러에서 라우트 파라미터로 전달받습니다.
    * 예시: GET /github/repos/:owner/:repo
    * github.controller.ts에서 @Param('owner') owner, @Param('repo') repo로 받아서 이 함수에 전달합니다.
@@ -26,25 +34,72 @@ export class GithubService {
   async getRepo(owner: string, repo: string) {
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}`;
     // 깃허브 API에 GET 요청을 보내고, 응답 데이터를 반환합니다.
-    const response = await this.httpService.get(url, { headers: this.getHeaders() }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: this.getHeaders() })
+      .toPromise();
     return response?.data;
   }
 
   async getBranches(owner: string, repo: string) {
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}/branches`;
-    const response = await this.httpService.get(url, { headers: this.getHeaders() }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: this.getHeaders() })
+      .toPromise();
     return response?.data;
   }
 
   async getCommits(owner: string, repo: string) {
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}/commits`;
-    const response = await this.httpService.get(url, { headers: this.getHeaders() }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: this.getHeaders() })
+      .toPromise();
     return response?.data;
   }
 
   async getPulls(owner: string, repo: string) {
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}/pulls`;
-    const response = await this.httpService.get(url, { headers: this.getHeaders() }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: this.getHeaders() })
+      .toPromise();
     return response?.data;
+  }
+
+  async createPullRequest(user: any, projectId: string, body: any) {
+    const githubToken = await this.githubTokenRepository.findOne({
+      where: { user_id: user.id },
+    });
+
+    if (!githubToken) {
+      throw new Error('GitHub 토큰이 없습니다.');
+    }
+    // title : pull request 제목
+    // head : 브랜치 이름
+    // base : 브랜치 이름
+    // repo : 저장소 이름
+    // owner : 저장소 소유자
+    // prBody : pull request 설명
+    const { title, head, base, repo, owner, prBody } = body;
+
+    // GitHub API 요청
+    const url = `https://api.github.com/repos/${owner}/${repo}/pulls`;
+
+    const response = await axios.post(
+      url,
+      {
+        title,
+        head,
+        base,
+        body: prBody || '', // PR 설명이 있으면 사용, 없으면 빈 문자열
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${githubToken.access_token}`,
+          Accept: 'application/vnd.github+json',
+        },
+      },
+    );
+
+    // 성공 시 PR 정보 반환
+    return response.data;
   }
 }
