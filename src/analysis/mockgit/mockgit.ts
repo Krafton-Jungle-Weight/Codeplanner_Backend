@@ -2,8 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { AnalyzeRequest } from '../dto/analyze-request.dto';
 
 @Injectable()
-export class GitCommit {
+export class GitService {
+  // 커밋 해시로 파일 데이터 변환: 아마 이곳에는 commit으로
+  // json을 받아오면 될 듯 함.
+  // json에서 파일 명, 내부 내용, 언어만 받아오면 될 듯
   getCommitFiles(commitHash: string): AnalyzeRequest[] {
+    console.log("input message: ", commitHash);
     // C언어 파일만 반환 (목데이터)
     if (commitHash === 'abc123') {
       return [

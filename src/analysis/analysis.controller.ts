@@ -43,8 +43,9 @@ export class AnalysisController {
 
   @Get('commit/:gitHash')
   async gitCommitAnalyze(
-    @Param() gitHash: string
+    @Param("gitHash") gitHash: string
   ){
+    
     return this.analysisService.analyzeCommit(gitHash);
   }
 } 
