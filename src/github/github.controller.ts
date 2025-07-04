@@ -23,6 +23,7 @@ export class GithubController {
   @UseGuards(JwtAuthGuard)
   @Get('connect/:repoUrl')
   async connectWebhook(@Param('repoUrl') repoUrl: string, @CurrentUser() user: User) {
+    console.log('connectWebhook', repoUrl, user);
     const decodedRepoUrl = decodeURIComponent(repoUrl);
     return this.githubService.connect(decodedRepoUrl, user);
   }
