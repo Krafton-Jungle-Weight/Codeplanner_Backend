@@ -147,7 +147,7 @@ export class GithubService {
       active: true,
       events: ['push', 'pull_request'],
       config: {
-        url: `${process.env.WEBHOOK_BASE_URL}/github/webhook`,
+        url: `${process.env.WEBHOOK_BASE_URL}/api/github/webhook`,
         content_type: 'json',
         insecure_ssl: '0',
       },
