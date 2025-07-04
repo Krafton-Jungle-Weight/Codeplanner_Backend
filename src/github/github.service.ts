@@ -5,16 +5,16 @@ import { GithubToken } from './github.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/user/user.entity';
 import { HttpService } from '@nestjs/axios';
+import axios from 'axios';
 
 @Injectable()
 export class GithubService {
   private readonly githubApiUrl = 'https://api.github.com';
 
   constructor(
+    private readonly httpService: HttpService,
     @InjectRepository(GithubToken)
     private githubTokenRepository: Repository<GithubToken>,
-
-    private readonly httpService: HttpService,
   ) {}
 
   private getHeaders() {
@@ -66,18 +66,55 @@ export class GithubService {
     return response?.data;
   }
 
-  async connect(repoUrl: string, user: User) {
+  async createPullRequest(user: any, projectId: string, body: any) {
+    const githubToken = await this.githubTokenRepository.findOne({
+      where: { user_id: user.id },
+    });
+
+    if (!githubToken) {
+      throw new Error('GitHub 토큰이 없습니다.');
+    }
+    // title : pull request 제목
+    // head : 브랜치 이름
+    // base : 브랜치 이름
+    // repo : 저장소 이름
+    // owner : 저장소 소유자
+    // prBody : pull request 설명
+    const { title, head, base, repo, owner, prBody } = body;
+
+    // GitHub API 요청
+    const url = `https://api.github.com/repos/${owner}/${repo}/pulls`;
+
+    const response = await axios.post(
+      url,
+      {
+        title,
+        head,
+        base,
+        body: prBody || '', // PR 설명이 있으면 사용, 없으면 빈 문자열
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${githubToken.access_token}`,
+          Accept: 'application/vnd.github+json',
+        },
+      },
+    );
+
+    // 성공 시 PR 정보 반환
+    return response.data;
+  }
+async connect(repoUrl: string, user: User) {
     console.log('repoUrl', repoUrl);
     const owner = repoUrl.split('/')[3];
     const repo = repoUrl.split('/')[4];
     console.log('owner', owner);
     console.log('repo', repo);
     console.log('user', user);
-
     const githubToken = await this.githubTokenRepository.findOne({
       where: { user_id: user.id },
     });
-
+  
     if (!githubToken) {
       throw new NotFoundException('Github token not found');
     }

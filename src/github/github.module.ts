@@ -4,6 +4,8 @@ import { GithubController } from './github.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GithubToken } from './github.entity';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { GithubToken } from './github.entity';
 import { AuthModule } from 'src/auth/auth.module';
 import { HttpModule } from '@nestjs/axios';
 import { ProjectModule } from 'src/project/project.module';
@@ -13,6 +15,5 @@ import { ProjectModule } from 'src/project/project.module';
   controllers: [GithubController],
   providers: [GithubService, JwtAuthGuard],
   exports: [GithubService, JwtAuthGuard],
-
 })
 export class GithubModule {}
