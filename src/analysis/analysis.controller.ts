@@ -10,11 +10,23 @@ export class AnalysisController {
 
   @Get()
   async analyzeExampleC() {
-    const filePath = join(__dirname, '..', '..', '..', 'src', 'static', 'code-samples', 'example1.c');
+    const filePath = join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'src',
+      'static',
+      'code-samples',
+      'example1.c',
+    );
     // cppcheck 실행
     let cppcheckResult = '';
     try {
-      const { stdout, stderr } = await execa('cppcheck', ['--enable=all', filePath]);
+      const { stdout, stderr } = await execa('cppcheck', [
+        '--enable=all',
+        filePath,
+      ]);
       cppcheckResult = stdout + (stderr ? '\n' + stderr : '');
     } catch (err: any) {
       cppcheckResult = err.stdout || err.stderr || err.message;
@@ -22,9 +34,13 @@ export class AnalysisController {
     // clang-tidy 실행
     let clangTidyResult = '';
     try {
-      const { stdout } = await execa('clang-tidy', [filePath, '--', '-std=c11'], {
-        env: { PATH: process.env.PATH },
-      });
+      const { stdout } = await execa(
+        'clang-tidy',
+        [filePath, '--', '-std=c11'],
+        {
+          env: { PATH: process.env.PATH },
+        },
+      );
       clangTidyResult = stdout;
     } catch (err: any) {
       clangTidyResult = err.stdout || err.stderr || err.message;
@@ -41,11 +57,24 @@ export class AnalysisController {
     return this.analysisService.analyzeFiles(files);
   }
 
+  /*
+  localhost:5000/analysis/commits/abc123
+  [
+    {
+      "filename": "foo.c",
+      "content": "#include <stdio.h>\nint main() { return 0; }",
+      "language": "c"
+    },
+    {
+      "filename": "bar.cpp",
+      "content": "#include <iostream>\nint main() { return 0; }",
+      "language": "cpp"
+    }
+  ]
+  */
+
   @Get('commit/:gitHash')
-  async gitCommitAnalyze(
-    @Param("gitHash") gitHash: string
-  ){
-    
+  async gitCommitAnalyze(@Param('gitHash') gitHash: string) {
     return this.analysisService.analyzeCommit(gitHash);
   }
-} 
+}
