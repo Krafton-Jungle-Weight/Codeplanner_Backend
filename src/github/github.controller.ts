@@ -21,11 +21,14 @@ export class GithubController {
   ) {}
     
   @UseGuards(JwtAuthGuard)
-  @Get('connect/:repoUrl')
-  async connectWebhook(@Param('repoUrl') repoUrl: string, @CurrentUser() user: User) {
-    console.log('connectWebhook', repoUrl, user);
-    const decodedRepoUrl = decodeURIComponent(repoUrl);
-    return this.githubService.connect(decodedRepoUrl, user);
+  // ↓ 명명된 와일드카드로 변경
+  @Get('connect/*repoUrl')
+  async connectWebhook(
+    @Param('repoUrl') repoUrl: string, // * 뒤에 붙인 이름으로 파라미터 추출
+    @CurrentUser() user: User,
+  ) {
+    const decoded = decodeURIComponent(repoUrl);
+    return this.githubService.connect(decoded, user);
   }
 
   @Post('webhook')
