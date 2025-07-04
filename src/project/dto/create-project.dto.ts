@@ -27,4 +27,8 @@ export class CreateProjectDto {
   @IsString()
   @IsOptional()
   project_leader?: string;
+
+  @IsString()
+  @IsOptional()
+  tag?: string;
 } 
