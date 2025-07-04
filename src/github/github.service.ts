@@ -122,8 +122,8 @@ export class GithubService {
 
   async connect(repoUrl: string, user: User) {
     console.log('repoUrl', repoUrl);
-    const owner = repoUrl.split('/')[3];
-    const repo = repoUrl.split('/')[4];
+    const owner = repoUrl.split(',')[2];
+    const repo = repoUrl.split(',')[3];
     console.log('owner', owner);
     console.log('repo', repo);
     console.log('user', user);
