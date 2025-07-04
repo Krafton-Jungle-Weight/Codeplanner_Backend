@@ -1,14 +1,28 @@
-import { execa } from "execa";
-import { join } from "path";
+import { execa } from 'execa';
+import { BaseScanner, ScannerConfig, ScannerResult } from './base.scanner';
 
-export async function runCppcheck(): Promise<string> {
-  const filePath = join(__dirname, '..', '..', '..', 'src', 'static', 'code-samples', 'example1.c');
-  console.log('Cppcheck filePath:', filePath);
-
-  try {
-    const { stdout, stderr } = await execa('cppcheck', ['--enable=all', filePath]);
-    return stdout + '\n' + stderr;
-  } catch (error: any) {
-    return error.stdout || error.stderr || error.message;
+export class CppcheckScanner extends BaseScanner {
+  constructor(config: ScannerConfig) {
+    super(config);
   }
-}
+
+  async execute(): Promise<ScannerResult> {
+    try {
+      const { stdout, stderr } = await execa('cppcheck', [
+        '--enable=all',
+        this.config.filePath,
+      ]);
+      return {
+        tool: 'cppcheck',
+        success: true,
+        output: stdout + (stderr ? '\n' + stderr : ''),
+      };
+    } catch (err: any) {
+      return {
+        tool: 'cppcheck',
+        success: false,
+        output: err.stdout || err.stderr || err.message,
+      };
+    }
+  }
+} 

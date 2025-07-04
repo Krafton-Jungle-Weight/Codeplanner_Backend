@@ -1,16 +1,30 @@
-import { execa } from "execa";
-import { join } from "path";
+import { execa } from 'execa';
+import { BaseScanner, ScannerConfig, ScannerResult } from './base.scanner';
 
-export async function runClangTidy(): Promise<string>{
-  const filePath = join(__dirname, '..', '..', '..', 'src', 'static', 'code-samples', 'example1.c');
-  console.log('Clang-tidy filePath:', filePath);
-
-  try {
-    const { stdout } = await execa('clang-tidy', [filePath, '--', '-std=c11'], {
-      env: { PATH: process.env.PATH },
-    });
-    return stdout;
-  } catch(error: any){
-    return error.stdout || error.message;
+export class ClangTidyScanner extends BaseScanner {
+  constructor(config: ScannerConfig) {
+    super(config);
   }
-}
+  
+
+  async execute(): Promise<ScannerResult> {
+    try {
+      const { stdout, stderr } = await execa('clang-tidy', [
+        this.config.filePath,
+        '--',
+        this.config.language === 'cpp' ? '-std=c++17' : '-std=c11',
+      ]);
+      return {
+        tool: 'clang-tidy',
+        success: true,
+        output: stdout + (stderr ? '\n' + stderr : ''),
+      };
+    } catch (err: any) {
+      return {
+        tool: 'clang-tidy',
+        success: false,
+        output: err.stdout || err.stderr || err.message,
+      };
+    }
+  }
+} 
