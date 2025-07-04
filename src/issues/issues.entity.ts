@@ -34,4 +34,7 @@ export class Issue {
 
   @Column({ type: 'integer', default: 0 })
   position: number;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  tag: string;
 }

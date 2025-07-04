@@ -23,7 +23,7 @@ jobs:
         ssh -o StrictHostKeyChecking=no ubuntu@3.38.25.129 << 'EOF'
           cd /home/ubuntu/codeplanner/Codeplanner_Backend
           git pull origin main
-          npm install
+          npm install --production
           npm run build
           export NODE_ENV=production
           pm2 restart all
