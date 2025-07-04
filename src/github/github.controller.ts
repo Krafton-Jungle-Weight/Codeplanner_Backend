@@ -1,7 +1,9 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { GithubService } from './github.service';
 import { ProjectService } from '../project/project.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { User } from 'src/user/user.entity';
+import { CurrentUser } from 'src/auth/user.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('github')
@@ -10,6 +12,19 @@ export class GithubController {
     private readonly githubService: GithubService,
     private readonly projectService: ProjectService,
   ) {}
+    
+  @UseGuards(JwtAuthGuard)
+  @Get('connect/:repoUrl')
+  async connectWebhook(@Param('repoUrl') repoUrl: string, @CurrentUser() user: User) {
+    const decodedRepoUrl = decodeURIComponent(repoUrl);
+    return this.githubService.connect(decodedRepoUrl, user);
+  }
+
+
+  @Post('webhook')
+  async webhook(@Body() body: any) {
+    console.log('webhook', body);
+  }
 
   @Get('repos/:owner/:repo')
   getRepo(@Param('owner') owner: string, @Param('repo') repo: string) {
@@ -89,5 +104,6 @@ export class GithubController {
     const owner = match[1];
     const repo = match[2];
     return this.githubService.getPulls(owner, repo);
+
   }
 }

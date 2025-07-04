@@ -315,5 +315,30 @@ export class ProjectService {
     return { message: '프로젝트가 삭제되었습니다.' };
   }
 
-  
+
+  async setProjectRepositoryUrl(projectId: string, repositoryUrl: string) {
+    await this.projectRepo.update(projectId, { repository_url: repositoryUrl });
+  }
+
+  async getProjectTag(projectId: string) {
+    const project = await this.projectRepo.findOne({
+      where: { id: projectId },
+    });
+
+    const tag : string = project?.tag + '-' + project?.tag_number;
+
+    return {issue_tag: tag};
+  }
+
+  async updateProjectTagNumber(projectId: string) {
+    // 프로젝트를 찾는다
+    const project = await this.projectRepo.findOne({ where: { id: projectId } });
+    if (!project) {
+      throw new Error('프로젝트를 찾을 수 없습니다.');
+    }
+    // tag_number를 +1 한다
+    project.tag_number = (project.tag_number || 0) + 1;
+    await this.projectRepo.save(project);
+    return { tag_number: project.tag_number };
+  }
 }

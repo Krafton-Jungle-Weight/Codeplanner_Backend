@@ -60,6 +60,10 @@ export class CreateIssueDto {
   @IsNumber()
   @Min(0)
   position?: number;
+
+  @IsOptional()
+  @IsString()
+  tag?: string;
 }
 
 export class UpdateIssueDto {

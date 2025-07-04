@@ -42,10 +42,11 @@ export class ProjectController {
 
   // 프로젝트 생성
   @UseGuards(JwtAuthGuard)
-  @Post('create')
+  @Post('create/')
   async createProject(
     @CurrentUser() user: User,
     @Body() createProjectDto: CreateProjectDto,
+    
   ): Promise<ProjectResponseDto> {
     // 프론트엔드 데이터를 DB 스키마에 맞게 변환
     const projectData = {
@@ -54,11 +55,12 @@ export class ProjectController {
       project_key: this.generateProjectKey(createProjectDto.title), // 프로젝트 키 자동 생성
       leader_id: user.id, // 현재 로그인한 사용자를 leader로 설정
       status: '대기중',
-      repository_url: createProjectDto.repository_url || undefined,
+      repository_url: createProjectDto.repository_url,
       due_date: createProjectDto.due_date
         ? new Date(createProjectDto.due_date)
         : undefined,
       expires_at: new Date(),
+      tag: createProjectDto.tag,
     };
 
     const createdProject = await this.projectService.create(projectData);
@@ -191,5 +193,8 @@ export class ProjectController {
     return `${prefix}${timestamp}`;
   }
 
-  
+  @Get(':projectId/tag')
+  async getProjectTag(@Param('projectId') projectId: string) {
+    return this.projectService.getProjectTag(projectId);
+  }
 }
