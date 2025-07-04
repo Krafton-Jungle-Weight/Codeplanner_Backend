@@ -243,4 +243,36 @@ export class GithubController {
       throw new Error(`토큰 상태 확인 실패: ${error.message}`);
     }
   }
+@UseGuards(JwtAuthGuard)
+  @Get('repos/:owner/:repo/commit/:sha/files')
+  async getPullRequestCommitFiles(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('sha') sha: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.githubService.getChangedFilesWithContent(
+      owner,
+      repo,
+      sha,
+      user.id,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('repos/:owner/:repo/pulls/:prNumber/files')
+  async getFilesInPR(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('prNumber') prNumber: string,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id;
+    return this.githubService.getFilesChangedInPullRequest(
+      owner,
+      repo,
+      parseInt(prNumber, 10),
+      userId,
+    );
+  }
 }
