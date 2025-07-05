@@ -21,26 +21,30 @@ export class GithubService {
 
   private async getHeaders(userId: string) {
     console.log(`[GitHub Service] 토큰 조회 시작: 사용자 ID ${userId}`);
-    
-    const tokenEntity = await this.githubTokenRepository.findOne({ 
-      where: { user_id: userId, provider: 'github' } 
+
+    const tokenEntity = await this.githubTokenRepository.findOne({
+      where: { user_id: userId, provider: 'github' },
     });
-    
+
     if (!tokenEntity) {
-      console.error(`[GitHub Service] 사용자 ${userId}의 GitHub 토큰을 찾을 수 없습니다`);
+      console.error(
+        `[GitHub Service] 사용자 ${userId}의 GitHub 토큰을 찾을 수 없습니다`,
+      );
       console.log(`[GitHub Service] DB에서 조회된 토큰:`, tokenEntity);
       throw new Error('GitHub access token not found for user');
     }
-    
+
     console.log(`[GitHub Service] 토큰 조회 성공:`, {
       id: tokenEntity.id,
       user_id: tokenEntity.user_id,
       provider: tokenEntity.provider,
       provider_user_id: tokenEntity.provider_user_id,
-      access_token: tokenEntity.access_token ? `${tokenEntity.access_token.substring(0, 10)}...` : 'null',
-      connected_at: tokenEntity.connected_at
+      access_token: tokenEntity.access_token
+        ? `${tokenEntity.access_token.substring(0, 10)}...`
+        : 'null',
+      connected_at: tokenEntity.connected_at,
     });
-    
+
     return {
       Authorization: `token ${tokenEntity.access_token}`,
       Accept: 'application/vnd.github+json',
@@ -58,13 +62,17 @@ export class GithubService {
    */
   async getRepo(owner: string, repo: string, userId: string) {
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}`;
-    const response = await this.httpService.get(url, { headers: await this.getHeaders(userId) }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
     return response?.data;
   }
 
   async getBranches(owner: string, repo: string, userId: string) {
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}/branches`;
-    const response = await this.httpService.get(url, { headers: await this.getHeaders(userId) }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
     return response?.data;
   }
 
@@ -73,13 +81,17 @@ export class GithubService {
     if (sha) {
       url += `?sha=${encodeURIComponent(sha)}`;
     }
-    const response = await this.httpService.get(url, { headers: await this.getHeaders(userId) }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
     return response?.data;
   }
 
   async getPulls(owner: string, repo: string, userId: string) {
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}/pulls`;
-    const response = await this.httpService.get(url, { headers: await this.getHeaders(userId) }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
     return response?.data;
   }
 
@@ -129,7 +141,7 @@ export class GithubService {
     const githubToken = await this.githubTokenRepository.findOne({
       where: { user_id: user.id },
     });
-  
+
     if (!githubToken) {
       throw new NotFoundException('Github token not found');
     }
@@ -164,16 +176,19 @@ export class GithubService {
   // github.service.ts
   async getTree(owner: string, repo: string, userId: string, branch: string) {
     // 브랜치의 sha를 먼저 가져옴
-    const branchRes = await this.httpService.get(
-      `${this.githubApiUrl}/repos/${owner}/${repo}/branches/${branch}`,
-      { headers: await this.getHeaders(userId) }
-    ).toPromise();
+    const branchRes = await this.httpService
+      .get(`${this.githubApiUrl}/repos/${owner}/${repo}/branches/${branch}`, {
+        headers: await this.getHeaders(userId),
+      })
+      .toPromise();
     const sha = branchRes?.data?.commit?.sha;
     if (!sha) throw new Error('브랜치 sha를 찾을 수 없습니다');
 
     // 트리 정보 요청
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}/git/trees/${sha}?recursive=1`;
-    const response = await this.httpService.get(url, { headers: await this.getHeaders(userId) }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
     return response?.data;
   }
 
@@ -185,30 +200,44 @@ export class GithubService {
    * @param userId 사용자 ID
    * @param orgName 조직 이름 (선택사항, 없으면 사용자 저장소로 생성)
    */
-  async createRepository(repoName: string, description: string, isPrivate: boolean, userId: string, orgName?: string) {
+  async createRepository(
+    repoName: string,
+    description: string,
+    isPrivate: boolean,
+    userId: string,
+    orgName?: string,
+  ) {
     try {
-      console.log(`[GitHub Service] 저장소 생성 시작: ${repoName}, 사용자: ${userId}, 조직: ${orgName || '사용자'}`);
-      
+      console.log(
+        `[GitHub Service] 저장소 생성 시작: ${repoName}, 사용자: ${userId}, 조직: ${orgName || '사용자'}`,
+      );
+
       // 사용자 토큰 확인
-      const tokenEntity = await this.githubTokenRepository.findOne({ where: { user_id: userId, provider: 'github' } });
+      const tokenEntity = await this.githubTokenRepository.findOne({
+        where: { user_id: userId, provider: 'github' },
+      });
       if (!tokenEntity) {
-        console.error(`[GitHub Service] 사용자 ${userId}의 GitHub 토큰을 찾을 수 없습니다`);
+        console.error(
+          `[GitHub Service] 사용자 ${userId}의 GitHub 토큰을 찾을 수 없습니다`,
+        );
         throw new Error('GitHub access token not found for user');
       }
-      
-      console.log(`[GitHub Service] 토큰 확인 완료: ${tokenEntity.access_token.substring(0, 10)}...`);
-      
+
+      console.log(
+        `[GitHub Service] 토큰 확인 완료: ${tokenEntity.access_token.substring(0, 10)}...`,
+      );
+
       // 먼저 사용자 정보를 가져와서 권한 확인
       const userInfo = await this.getUserInfo(userId);
       console.log(`[GitHub Service] 사용자 정보:`, userInfo);
-      
+
       const data = {
         name: repoName,
         description: description,
         private: isPrivate,
         auto_init: true, // README 파일 자동 생성
       };
-      
+
       let url: string;
       if (orgName) {
         // 조직 저장소 생성
@@ -219,45 +248,51 @@ export class GithubService {
         url = `${this.githubApiUrl}/user/repos`;
         console.log(`[GitHub Service] 사용자 저장소 생성: ${url}`);
       }
-      
+
       console.log(`[GitHub Service] GitHub API 요청: ${url}`);
       console.log(`[GitHub Service] 요청 데이터:`, data);
-      
+
       const headers = await this.getHeaders(userId);
-      console.log(`[GitHub Service] 요청 헤더:`, { 
+      console.log(`[GitHub Service] 요청 헤더:`, {
         Authorization: headers.Authorization ? 'Bearer [HIDDEN]' : 'Not set',
-        Accept: headers.Accept 
+        Accept: headers.Accept,
       });
-      
-      const response = await this.httpService.post(url, data, { headers }).toPromise();
-      
+
+      const response = await this.httpService
+        .post(url, data, { headers })
+        .toPromise();
+
       console.log(`[GitHub Service] GitHub API 응답 성공:`, response?.data);
       return response?.data;
-      
     } catch (error) {
       console.error(`[GitHub Service] 저장소 생성 실패:`, error);
-      
+
       if (error.response) {
         console.error(`[GitHub Service] GitHub API 응답 오류:`, {
           status: error.response.status,
           statusText: error.response.statusText,
-          data: error.response.data
+          data: error.response.data,
         });
-        
+
         // GitHub API 오류 메시지 추출
         if (error.response.data && error.response.data.message) {
           const errorMessage = error.response.data.message;
-          
+
           // 권한 관련 오류 처리
-          if (errorMessage.includes('Not Found') || errorMessage.includes('404')) {
+          if (
+            errorMessage.includes('Not Found') ||
+            errorMessage.includes('404')
+          ) {
             const orgText = orgName ? `조직 '${orgName}'에 대한 ` : '';
-            throw new Error(`GitHub API 권한 오류: ${orgText}저장소 생성 권한이 없습니다. GitHub OAuth에서 'repo' 권한을 확인해주세요.`);
+            throw new Error(
+              `GitHub API 권한 오류: ${orgText}저장소 생성 권한이 없습니다. GitHub OAuth에서 'repo' 권한을 확인해주세요.`,
+            );
           }
-          
+
           throw new Error(`GitHub API 오류: ${errorMessage}`);
         }
       }
-      
+
       throw error;
     }
   }
@@ -268,20 +303,24 @@ export class GithubService {
    */
   async getUserInfo(userId: string) {
     const url = `${this.githubApiUrl}/user`;
-    const response = await this.httpService.get(url, { 
-      headers: await this.getHeaders(userId) 
-    }).toPromise();
-    
+    const response = await this.httpService
+      .get(url, {
+        headers: await this.getHeaders(userId),
+      })
+      .toPromise();
+
     return response?.data;
   }
 
   async getTokenScopes(accessToken: string): Promise<string[]> {
-    const response = await this.httpService.get('https://api.github.com/user', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'User-Agent': 'CodePlanner-App'
-      }
-    }).toPromise();
+    const response = await this.httpService
+      .get('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'User-Agent': 'CodePlanner-App',
+        },
+      })
+      .toPromise();
 
     if (!response?.data) {
       throw new Error(`GitHub 토큰 상태 조회 실패`);
@@ -289,7 +328,10 @@ export class GithubService {
 
     // GitHub이 응답 헤더에 붙여주는 스코프 목록 (comma-separated)
     const scopesHeader = response.headers['x-oauth-scopes'] || '';
-    return scopesHeader.split(',').map(s => s.trim()).filter(Boolean);
+    return scopesHeader
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
   }
   async getChangedFilesWithContent(
     owner: string,
@@ -423,4 +465,3 @@ export class GithubService {
     return allResults;
   }
 }
-
