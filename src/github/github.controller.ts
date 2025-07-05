@@ -32,10 +32,7 @@ export class GithubController {
     return this.githubService.connect(owner, repo, user);
   }
 
-  @Post('webhook')
-  async webhook(@Body() body: any) {
-    console.log('webhook', body);
-  }
+  
 
   @UseGuards(JwtAuthGuard)
   @Get('repos/:owner/:repo')
