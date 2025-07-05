@@ -239,4 +239,78 @@ export class GithubController {
       throw new Error(`토큰 상태 확인 실패: ${error.message}`);
     }
   }
+  /**
+   * 사용자가 속한 GitHub 조직 목록을 가져오는 엔드포인트
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('organizations')
+  async getUserOrganizations(@CurrentUser() user: any) {
+    const userId = user?.id;
+    
+    try {
+      console.log(`[GitHub Controller] 사용자 조직 목록 조회: ${userId}`);
+      
+      const organizations = await this.githubService.getUserOrganizations(userId);
+      
+      return {
+        success: true,
+        organizations: organizations.map(org => ({
+          login: org.login,
+          id: org.id,
+          avatar_url: org.avatar_url,
+          description: org.description,
+          url: org.url,
+          html_url: org.html_url,
+          canCreateRepo: org.canCreateRepo,
+          role: org.role,
+          state: org.state,
+          permissionError: org.permissionError
+        }))
+      };
+    } catch (error) {
+      console.error(`[GitHub Controller] 조직 목록 조회 실패:`, error);
+      throw new Error(`조직 목록 조회 실패: ${error.message}`);
+    }
+  }
+
+  /**
+   * 특정 조직의 저장소 생성 권한을 확인하는 엔드포인트
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('organizations/:orgName/permissions')
+  async checkOrganizationPermissions(@CurrentUser() user: any, @Param('orgName') orgName: string) {
+    const userId = user?.id;
+    
+    try {
+      console.log(`[GitHub Controller] 조직 권한 확인: ${userId} -> ${orgName}`);
+      
+      const permissionCheck = await this.githubService.checkOrganizationRepoCreationPermission(userId, orgName);
+      const helpInfo = this.githubService.getOrganizationPermissionHelp(orgName);
+      
+      return {
+        success: true,
+        canCreateRepo: permissionCheck.canCreateRepo,
+        role: permissionCheck.role,
+        state: permissionCheck.state,
+        organization: permissionCheck.organization,
+        helpInfo
+      };
+    } catch (error) {
+      console.error(`[GitHub Controller] 조직 권한 확인 실패:`, error);
+      
+      // 권한 문제인 경우 도움말 정보와 함께 반환
+      const helpInfo = this.githubService.getOrganizationPermissionHelp(orgName);
+      
+      return {
+        success: false,
+        error: error.message,
+        canCreateRepo: false,
+        helpInfo
+      };
+    }
+  }
+      owner: string; 
+      repo: string; 
+      issueTitle: string; 
+      baseBranch?: 'main' | 'master'
 }

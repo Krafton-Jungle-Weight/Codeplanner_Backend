@@ -11,6 +11,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AuthModule } from 'src/auth/auth.module';
 import { EmailModule } from 'src/email/email.module';
 import { ProjectModule } from 'src/project/project.module';
+import { GithubModule } from 'src/github/github.module';
 
 @Module({
   providers: [SummaryService, JwtAuthGuard, IssuesService],
@@ -20,6 +21,7 @@ import { ProjectModule } from 'src/project/project.module';
     AuthModule,
     EmailModule,
     ProjectModule,
+    GithubModule,
   ],
 })
 export class SummaryModule {}
