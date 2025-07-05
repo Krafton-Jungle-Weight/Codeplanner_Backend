@@ -13,7 +13,7 @@ import { IssuesModule } from './issues/issues.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { SummaryModule } from './summary/summary.module';
 import { GithubModule } from './github/github.module';
-import { AnalysisModule } from './analysis/\banalysis.module';
+import { AnalysisModule } from './analysis/analysis.module';
 
 @Module({
   imports: [
