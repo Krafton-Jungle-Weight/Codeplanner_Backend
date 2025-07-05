@@ -6,6 +6,8 @@ import { Repository } from 'typeorm';
 import { User } from 'src/user/user.entity';
 import { HttpService } from '@nestjs/axios';
 import axios from 'axios';
+import { detectLanguage } from './github.utils';
+import { ChangedFileWithContent } from './dto/github.dto';
 
 @Injectable()
 export class GithubService {
@@ -288,6 +290,137 @@ export class GithubService {
     // GitHub이 응답 헤더에 붙여주는 스코프 목록 (comma-separated)
     const scopesHeader = response.headers['x-oauth-scopes'] || '';
     return scopesHeader.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  async getChangedFilesWithContent(
+    owner: string,
+    repo: string,
+    commitSha: string,
+    userId: string,
+  ) {
+    const headers = await this.getHeaders(userId);
+
+    // 1. 커밋에서 변경된 파일 목록 얻기
+    const commitUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/commits/${commitSha}`;
+    const commitRes = await this.httpService
+      .get(commitUrl, { headers })
+      .toPromise();
+
+    const files = commitRes?.data?.files;
+    if (!files || files.length === 0) {
+      throw new Error('변경된 파일이 없습니다.');
+    }
+    type ChangedFileWithContent = {
+      filename: string;
+      status: 'added' | 'modified' | 'removed'; // 깃허브 커밋 파일 상태
+      language: 'c' | 'cpp' | 'text' | 'unknown';
+      content: string;
+      error?: string; // 선택값으로 변경!
+    };
+    // 2. 각 파일의 내용 가져오기
+    // const results: { file: string; cppcheck: ScannerResult; clangTidy: ScannerResult }[] = [];
+    const results: ChangedFileWithContent[] = [];
+
+    for (const file of files) {
+      const filePath = file.filename;
+
+      const contentUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/contents/${filePath}?ref=${commitSha}`;
+      try {
+        const contentRes = await this.httpService
+          .get(contentUrl, { headers })
+          .toPromise();
+        const encoded = contentRes?.data?.content;
+        const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+
+        results.push({
+          filename: filePath,
+          status: file.status, // added, modified, removed
+          language: filePath.endsWith('.c')
+            ? 'c'
+            : filePath.endsWith('.cpp')
+              ? 'cpp'
+              : 'text',
+          content: decoded,
+        });
+      } catch (err) {
+        console.error(`파일 ${filePath} 읽기 실패`, err.message);
+        // 실패한 파일도 기록해줄 수 있음
+        results.push({
+          filename: filePath,
+          status: file.status,
+          language: 'unknown',
+          content: '',
+          error: err.message,
+        });
+      }
+    }
+    return results;
+  }
+
+  async getFilesChangedInPullRequest(
+    owner: string,
+    repo: string,
+    pullNumber: number,
+    userId: string,
+  ): Promise<ChangedFileWithContent[]> {
+    const headers = await this.getHeaders(userId);
+    const allResults: ChangedFileWithContent[] = [];
+
+    // 1. PR에 포함된 커밋들 가져오기
+    const commitsUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/pulls/${pullNumber}/commits`;
+    const commitsRes = await this.httpService
+      .get(commitsUrl, { headers })
+      .toPromise();
+    const commits = commitsRes?.data;
+
+    if (!commits || commits.length === 0) {
+      throw new Error('PR에 포함된 커밋이 없습니다.');
+    }
+
+    // 2. 커밋별로 변경된 파일들을 쭉 순회
+    for (const commit of commits) {
+      const sha = commit.sha;
+      const commitUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/commits/${sha}`;
+      const commitRes = await this.httpService
+        .get(commitUrl, { headers })
+        .toPromise();
+
+      const files = commitRes?.data?.files;
+      if (!files) continue;
+
+      for (const file of files) {
+        const path = file.filename;
+
+        // 중복 검사 방지: 이미 처리한 파일은 건너뜀
+        if (allResults.find((r) => r.filename === path)) continue;
+
+        try {
+          const contentUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/contents/${path}?ref=${sha}`;
+          const contentRes = await this.httpService
+            .get(contentUrl, { headers })
+            .toPromise();
+          const encoded = contentRes?.data?.content;
+          const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+          // console.log("qewrqwr : ", path);
+          // console.log("func : ", detectLanguage(path));
+          allResults.push({
+            filename: path,
+            status: file.status,
+            language: detectLanguage(path),
+            content: decoded,
+          });
+        } catch (err) {
+          allResults.push({
+            filename: path,
+            status: file.status,
+            language: 'unknown',
+            content: '',
+            error: err.message,
+          });
+        }
+      }
+    }
+
+    return allResults;
   }
 }
 
