@@ -28,7 +28,6 @@ export class GithubController {
     @Param('repo') repo: string,
     @CurrentUser() user: User,
   ) {
-    
     return this.githubService.connect(owner, repo, user);
   }
 
