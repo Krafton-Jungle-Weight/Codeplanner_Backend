@@ -1,8 +1,10 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards } from '@nestjs/common';
 import { AnalysisService } from './analysis.service';
 import { AnalyzeRequest } from './dto/analyze-request.dto';
 import { execa } from 'execa';
 import { join } from 'path';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { CurrentUser } from 'src/auth/user.decorator';
 
 @Controller('analysis')
 export class AnalysisController {
@@ -76,5 +78,34 @@ export class AnalysisController {
   @Get('commit/:gitHash')
   async gitCommitAnalyze(@Param('gitHash') gitHash: string) {
     return this.analysisService.analyzeCommit(gitHash);
+  }
+
+  // GitHub 커밋 분석
+  @UseGuards(JwtAuthGuard)
+  @Get('github/commit/:owner/:repo/:sha')
+  async analyzeGitHubCommit(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('sha') sha: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.analysisService.analyzeGitHubCommit(owner, repo, sha, user.id);
+  }
+
+  // GitHub PR 분석
+  @UseGuards(JwtAuthGuard)
+  @Get('github/pr/:owner/:repo/:prNumber')
+  async analyzeGitHubPullRequest(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('prNumber') prNumber: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.analysisService.analyzeGitHubPullRequest(
+      owner,
+      repo,
+      parseInt(prNumber, 10),
+      user.id,
+    );
   }
 }
