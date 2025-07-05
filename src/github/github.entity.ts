@@ -26,5 +26,3 @@ export class GithubToken {
   @IsNotEmpty()
   connected_at: Date;
 }
-
-
