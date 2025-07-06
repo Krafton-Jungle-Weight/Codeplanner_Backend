@@ -40,9 +40,9 @@ export class IssuesController {
     @CurrentUser() user: User,
   ) {
     console.log(projectId, dto);
-     await this.issuesService.createIssue(projectId, dto, user);
+    const result = await this.issuesService.createIssue(projectId, dto, user);
     
-    return { success: 'Issue created successfully' };
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)  
@@ -106,4 +106,6 @@ export class IssuesController {
       id
     );
   }
+
+  
 }

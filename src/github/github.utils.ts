@@ -23,3 +23,9 @@ export function parseGitHubUrl(repoUrl: string) {
   
   return null;
 } 
+
+export function detectLanguage(filename: string): 'c' | 'cpp' | 'text' | 'unknown' {
+  if (filename.endsWith('.c')) return 'c';
+  if (filename.endsWith('.cpp') || filename.endsWith('.cc') || filename.endsWith('.cxx')) return 'cpp';
+  return 'text';
+}

@@ -8,6 +8,8 @@ import { CreateIssueDto } from './issues-update.dto';
 import { EmailService } from 'src/email/email.service';
 import { User } from 'src/user/user.entity';
 import { ProjectService } from 'src/project/project.service';
+import { GithubService } from 'src/github/github.service';
+
 
 @Injectable()
 export class IssuesService {
@@ -21,6 +23,10 @@ export class IssuesService {
 
     @Inject(ProjectService)
     private readonly projectService: ProjectService,
+
+    @Inject(GithubService)
+    private readonly githubService: GithubService,
+
   ) {}
 
   // UUID 값을 정리하는 헬퍼 함수
@@ -152,7 +158,7 @@ export class IssuesService {
   }
 
   
-  async createIssue(projectId: string, dto: CreateIssueDto, user: User): Promise<void> {
+  async createIssue(projectId: string, dto: CreateIssueDto, user: User): Promise<{ success: string; branchName?: string; branchError?: string }> {
     // UUID 값들을 정리
     const cleanAssigneeId = this.cleanUuid(dto.assigneeId);
     const cleanReporterId = user.id;
@@ -179,10 +185,107 @@ export class IssuesService {
       dto.startDate,
       dto.dueDate,
       dto.position,
-      dto.tag,
+      dto.tag ,
     ]);
 
     await this.projectService.updateProjectTagNumber(projectId);
+
+    // 브랜치 생성 옵션이 활성화된 경우에만 브랜치 생성
+    let branchName: string | undefined;
+    let branchError: string | undefined;
+    
+    if (dto.createBranch !== false) { // 기본값이 true이므로 false가 아닌 경우 브랜치 생성
+      try {
+        const branchResult = await this.createBranchForIssue(projectId, dto.title, user.id);
+        branchName = branchResult?.branchName;
+        branchError = branchResult?.error;
+        console.log(`브랜치 생성 결과 - branchName: ${branchName}, branchError: ${branchError}`);
+      } catch (error) {
+        console.error('브랜치 생성 실패:', error);
+        branchError = '브랜치 생성 중 예상치 못한 오류가 발생했습니다.';
+      }
+    }
+
+    const response = { 
+      success: 'Issue created successfully',
+      branchName,
+      branchError
+    };
+    
+    console.log(`createIssue 최종 응답:`, response);
+    return response;
+  }
+
+  /**
+   * 이슈를 위한 브랜치를 생성하는 메서드
+   */
+  private async createBranchForIssue(projectId: string, issueTitle: string, userId: string): Promise<{ branchName?: string; error?: string }> {
+    try {
+      // 프로젝트 정보 가져오기
+      const project = await this.projectService.findOne(projectId);
+      if (!project.repository_url) {
+        console.log('프로젝트에 저장소 URL이 없어 브랜치를 생성하지 않습니다.');
+        return { error: '프로젝트에 GitHub 저장소 URL이 설정되지 않았습니다.' };
+      }
+
+      // GitHub URL에서 owner/repo 추출
+      const match = project.repository_url.match(/github\.com\/([^/]+)\/([^/]+)/);
+      if (!match) {
+        console.log('올바르지 않은 GitHub URL 형식입니다.');
+        return { error: '올바르지 않은 GitHub 저장소 URL 형식입니다. (예: https://github.com/owner/repo)' };
+      }
+
+      const owner = match[1];
+      const repo = match[2];
+
+      // 저장소 정보를 가져와서 기본 브랜치 확인
+      let baseBranch = 'main'; // 기본값
+      try {
+        const repoInfo = await this.githubService.getRepo(owner, repo, userId);
+        baseBranch = repoInfo.default_branch || 'main';
+        console.log(`저장소의 기본 브랜치: ${baseBranch}`);
+      } catch (error) {
+        console.log(`저장소 정보 조회 실패, 기본값 'main' 사용: ${error.message}`);
+      }
+
+      // 브랜치 생성
+      const branchData = await this.githubService.createBranchFromIssue(
+        userId,
+        owner,
+        repo,
+        issueTitle,
+        baseBranch
+      );
+
+      console.log(`이슈 '${issueTitle}'을 위한 브랜치가 생성되었습니다: ${branchData.branchName}`);
+      console.log(`브랜치 생성 결과:`, branchData);
+      
+      return { branchName: branchData.branchName };
+    } catch (error) {
+      console.error('브랜치 생성 중 오류 발생:', error);
+      
+      // 오류 메시지 추출
+      let errorMessage = '브랜치 생성에 실패했습니다.';
+      
+      if (error.message) {
+        if (error.message.includes('저장소를 찾을 수 없습니다')) {
+          errorMessage = 'GitHub 저장소를 찾을 수 없습니다. 저장소 이름과 소유자를 확인해주세요.';
+        } else if (error.message.includes('접근 권한이 없습니다')) {
+          errorMessage = 'GitHub 저장소에 대한 접근 권한이 없습니다. 저장소가 비공개인 경우 소유자에게 접근 권한을 요청하세요.';
+        } else if (error.message.includes('GitHub 인증이 만료')) {
+          errorMessage = 'GitHub 인증이 만료되었습니다. GitHub OAuth를 다시 연결해주세요.';
+        } else if (error.message.includes('브랜치가 이미 존재')) {
+          errorMessage = '동일한 이름의 브랜치가 이미 존재합니다.';
+        } else if (error.message.includes('브랜치 생성 권한')) {
+          errorMessage = '브랜치 생성 권한이 없습니다. GitHub OAuth에서 repo 권한을 확인해주세요.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      return { error: errorMessage };
+    }
+
   }
 
   async deleteIssue(issueId: string, projectId: string): Promise<void> {
