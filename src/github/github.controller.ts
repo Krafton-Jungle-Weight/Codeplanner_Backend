@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { User } from 'src/user/user.entity';
 import { CurrentUser } from 'src/auth/user.decorator';
 import { parseGitHubUrl } from './github.utils';
+import { GithubPullRequestService } from './github-pull-request.service';
 
 
 @Controller('github')
@@ -18,6 +19,7 @@ export class GithubController {
     private readonly projectService: ProjectService,
     @InjectRepository(GithubToken)
     private githubTokenRepository: Repository<GithubToken>,
+    private readonly githubPullRequestService: GithubPullRequestService,
   ) {}
     
   @UseGuards(JwtAuthGuard)
@@ -135,7 +137,7 @@ export class GithubController {
     @Param('projectId') projectId: string,
     @Body() body: any,
   ) {
-    return await this.githubService.createPullRequest(user, projectId, body);
+    return await this.githubPullRequestService.createPullRequest(user, projectId, body);
   }
 
   /**
@@ -238,5 +240,17 @@ export class GithubController {
       console.error(`[GitHub Controller] 토큰 상태 확인 실패:`, error);
       throw new Error(`토큰 상태 확인 실패: ${error.message}`);
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('project/:projectId/pull-request-file-changes/:pull_number/:owner/:repo')
+  async getPullRequestFileChanges(
+    @CurrentUser() user: any,
+    @Param('projectId') projectId: string,
+    @Param('pull_number') pull_number: string,
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+  ) {
+    return await this.githubPullRequestService.getPullRequestFileChanges(user, projectId, pull_number, owner, repo);
   }
 }
