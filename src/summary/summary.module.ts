@@ -22,6 +22,7 @@ import { GithubModule } from 'src/github/github.module';
     EmailModule,
     ProjectModule,
     GithubModule,
+
   ],
 })
 export class SummaryModule {}

@@ -66,9 +66,11 @@ export class CreateIssueDto {
   @IsString()
   tag?: string;
 
+
   @IsOptional()
   @IsBoolean()
   createBranch?: boolean;
+
 }
 
 export class UpdateIssueDto {

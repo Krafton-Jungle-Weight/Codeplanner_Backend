@@ -10,6 +10,7 @@ import { User } from 'src/user/user.entity';
 import { ProjectService } from 'src/project/project.service';
 import { GithubService } from 'src/github/github.service';
 
+
 @Injectable()
 export class IssuesService {
   
@@ -25,6 +26,7 @@ export class IssuesService {
 
     @Inject(GithubService)
     private readonly githubService: GithubService,
+
   ) {}
 
   // UUID 값을 정리하는 헬퍼 함수
@@ -283,6 +285,7 @@ export class IssuesService {
       
       return { error: errorMessage };
     }
+
   }
 
   async deleteIssue(issueId: string, projectId: string): Promise<void> {

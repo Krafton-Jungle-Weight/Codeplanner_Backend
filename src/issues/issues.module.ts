@@ -17,6 +17,7 @@ import { ProjectService } from 'src/project/project.service';
     EmailModule,
     ProjectModule,
     GithubModule,
+
   ],
   controllers: [IssuesController],
   providers: [IssuesService, JwtAuthGuard,],

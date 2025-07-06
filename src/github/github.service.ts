@@ -6,6 +6,9 @@ import { Repository } from 'typeorm';
 import { User } from 'src/user/user.entity';
 import { HttpService } from '@nestjs/axios';
 import axios from 'axios';
+import { detectLanguage } from './github.utils';
+import { ChangedFileWithContent } from './dto/github.dto';
+
 
 @Injectable()
 export class GithubService {
@@ -19,26 +22,30 @@ export class GithubService {
 
   private async getHeaders(userId: string) {
     console.log(`[GitHub Service] 토큰 조회 시작: 사용자 ID ${userId}`);
-    
-    const tokenEntity = await this.githubTokenRepository.findOne({ 
-      where: { user_id: userId, provider: 'github' } 
+    const tokenEntity = await this.githubTokenRepository.findOne({
+      where: { user_id: userId, provider: 'github' },
     });
-    
+
     if (!tokenEntity) {
-      console.error(`[GitHub Service] 사용자 ${userId}의 GitHub 토큰을 찾을 수 없습니다`);
+      console.error(
+        `[GitHub Service] 사용자 ${userId}의 GitHub 토큰을 찾을 수 없습니다`,
+      );
       console.log(`[GitHub Service] DB에서 조회된 토큰:`, tokenEntity);
       throw new Error('GitHub access token not found for user');
     }
-    
+
     console.log(`[GitHub Service] 토큰 조회 성공:`, {
       id: tokenEntity.id,
       user_id: tokenEntity.user_id,
       provider: tokenEntity.provider,
       provider_user_id: tokenEntity.provider_user_id,
-      access_token: tokenEntity.access_token ? `${tokenEntity.access_token.substring(0, 10)}...` : 'null',
-      connected_at: tokenEntity.connected_at
+      access_token: tokenEntity.access_token
+        ? `${tokenEntity.access_token.substring(0, 10)}...`
+        : 'null',
+      connected_at: tokenEntity.connected_at,
     });
-    
+
+
     return {
       Authorization: `token ${tokenEntity.access_token}`,
       Accept: 'application/vnd.github+json',
@@ -56,13 +63,17 @@ export class GithubService {
    */
   async getRepo(owner: string, repo: string, userId: string) {
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}`;
-    const response = await this.httpService.get(url, { headers: await this.getHeaders(userId) }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
     return response?.data;
   }
 
   async getBranches(owner: string, repo: string, userId: string) {
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}/branches`;
-    const response = await this.httpService.get(url, { headers: await this.getHeaders(userId) }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
     return response?.data;
   }
 
@@ -71,13 +82,17 @@ export class GithubService {
     if (sha) {
       url += `?sha=${encodeURIComponent(sha)}`;
     }
-    const response = await this.httpService.get(url, { headers: await this.getHeaders(userId) }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
     return response?.data;
   }
 
   async getPulls(owner: string, repo: string, userId: string) {
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}/pulls`;
-    const response = await this.httpService.get(url, { headers: await this.getHeaders(userId) }).toPromise();
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
     return response?.data;
   }
 
@@ -120,17 +135,18 @@ export class GithubService {
     return response.data;
   }
 
-  async connect(repoUrl: string, user: User) {
-    console.log('repoUrl', repoUrl);
-    const owner = repoUrl.split('/')[3];
-    const repo = repoUrl.split('/')[4];
+
+  async connect(owner: string, repo: string, user: User) {
+
     console.log('owner', owner);
     console.log('repo', repo);
     console.log('user', user);
     const githubToken = await this.githubTokenRepository.findOne({
       where: { user_id: user.id },
     });
-  
+
+
+
     if (!githubToken) {
       throw new NotFoundException('Github token not found');
     }
@@ -165,16 +181,23 @@ export class GithubService {
   // github.service.ts
   async getTree(owner: string, repo: string, userId: string, branch: string) {
     // 브랜치의 sha를 먼저 가져옴
-    const branchRes = await this.httpService.get(
-      `${this.githubApiUrl}/repos/${owner}/${repo}/branches/${branch}`,
-      { headers: await this.getHeaders(userId) }
-    ).toPromise();
+
+    const branchRes = await this.httpService
+      .get(`${this.githubApiUrl}/repos/${owner}/${repo}/branches/${branch}`, {
+        headers: await this.getHeaders(userId),
+      })
+      .toPromise();
+
     const sha = branchRes?.data?.commit?.sha;
     if (!sha) throw new Error('브랜치 sha를 찾을 수 없습니다');
 
     // 트리 정보 요청
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}/git/trees/${sha}?recursive=1`;
-    const response = await this.httpService.get(url, { headers: await this.getHeaders(userId) }).toPromise();
+
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
+
     return response?.data;
   }
 
@@ -186,6 +209,7 @@ export class GithubService {
    * @param userId 사용자 ID
    * @param orgName 조직 이름 (선택사항, 없으면 사용자 저장소로 생성)
    */
+
   async createRepository(repoName: string, description: string, isPrivate: boolean, userId: string, orgName?: string) {
     try {
       console.log(`[GitHub Service] 저장소 생성 시작: ${repoName}, 사용자: ${userId}, 조직: ${orgName || '사용자'}`);
@@ -227,13 +251,16 @@ export class GithubService {
         }
       }
       
+
       const data = {
         name: repoName,
         description: description,
         private: isPrivate,
         auto_init: true, // README 파일 자동 생성
       };
+
       
+
       let url: string;
       if (orgName) {
         // 조직 저장소 생성
@@ -244,45 +271,54 @@ export class GithubService {
         url = `${this.githubApiUrl}/user/repos`;
         console.log(`[GitHub Service] 사용자 저장소 생성: ${url}`);
       }
-      
+
+
       console.log(`[GitHub Service] GitHub API 요청: ${url}`);
       console.log(`[GitHub Service] 요청 데이터:`, data);
-      
+
       const headers = await this.getHeaders(userId);
-      console.log(`[GitHub Service] 요청 헤더:`, { 
+      console.log(`[GitHub Service] 요청 헤더:`, {
         Authorization: headers.Authorization ? 'Bearer [HIDDEN]' : 'Not set',
-        Accept: headers.Accept 
+        Accept: headers.Accept,
       });
-      
-      const response = await this.httpService.post(url, data, { headers }).toPromise();
-      
+
+      const response = await this.httpService
+        .post(url, data, { headers })
+        .toPromise();
+
       console.log(`[GitHub Service] GitHub API 응답 성공:`, response?.data);
       return response?.data;
-      
     } catch (error) {
       console.error(`[GitHub Service] 저장소 생성 실패:`, error);
-      
+
+
       if (error.response) {
         console.error(`[GitHub Service] GitHub API 응답 오류:`, {
           status: error.response.status,
           statusText: error.response.statusText,
-          data: error.response.data
+
+          data: error.response.data,
         });
-        
+
         // GitHub API 오류 메시지 추출
         if (error.response.data && error.response.data.message) {
           const errorMessage = error.response.data.message;
-          
+
           // 권한 관련 오류 처리
-          if (errorMessage.includes('Not Found') || errorMessage.includes('404')) {
+          if (
+            errorMessage.includes('Not Found') ||
+            errorMessage.includes('404')
+          ) {
             const orgText = orgName ? `조직 '${orgName}'에 대한 ` : '';
-            throw new Error(`GitHub API 권한 오류: ${orgText}저장소 생성 권한이 없습니다. GitHub OAuth에서 'repo' 권한을 확인해주세요.`);
+            throw new Error(
+              `GitHub API 권한 오류: ${orgText}저장소 생성 권한이 없습니다. GitHub OAuth에서 'repo' 권한을 확인해주세요.`,
+            );
           }
-          
+
           throw new Error(`GitHub API 오류: ${errorMessage}`);
         }
       }
-      
+
       throw error;
     }
   }
@@ -496,22 +532,6 @@ export class GithubService {
     };
   }
 
-  async getTokenScopes(accessToken: string): Promise<string[]> {
-    const response = await this.httpService.get('https://api.github.com/user', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'User-Agent': 'CodePlanner-App'
-      }
-    }).toPromise();
-
-    if (!response?.data) {
-      throw new Error(`GitHub 토큰 상태 조회 실패`);
-    }
-
-    // GitHub이 응답 헤더에 붙여주는 스코프 목록 (comma-separated)
-    const scopesHeader = response.headers['x-oauth-scopes'] || '';
-    return scopesHeader.split(',').map(s => s.trim()).filter(Boolean);
-  }
 
   /**
    * 이슈 제목을 기반으로 브랜치를 생성하는 메서드입니다.
@@ -650,3 +670,296 @@ export class GithubService {
   }
 }
 
+    const response = await this.httpService
+      .get(url, {
+        headers: await this.getHeaders(userId),
+      })
+      .toPromise();
+
+    return response?.data;
+  }
+
+  async getTokenScopes(accessToken: string): Promise<string[]> {
+    const response = await this.httpService
+      .get('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'User-Agent': 'CodePlanner-App',
+        },
+      })
+      .toPromise();
+
+    if (!response?.data) {
+      throw new Error(`GitHub 토큰 상태 조회 실패`);
+    }
+
+    // GitHub이 응답 헤더에 붙여주는 스코프 목록 (comma-separated)
+    const scopesHeader = response.headers['x-oauth-scopes'] || '';
+    return scopesHeader
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  async getChangedFilesWithContent(
+    owner: string,
+    repo: string,
+    commitSha: string,
+    userId: string,
+  ) {
+    const headers = await this.getHeaders(userId);
+
+    // 1. 커밋에서 변경된 파일 목록 얻기
+    const commitUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/commits/${commitSha}`;
+    const commitRes = await this.httpService
+      .get(commitUrl, { headers })
+      .toPromise();
+
+    const files = commitRes?.data?.files;
+    if (!files || files.length === 0) {
+      throw new Error('변경된 파일이 없습니다.');
+    }
+    type ChangedFileWithContent = {
+      filename: string;
+      status: 'added' | 'modified' | 'removed'; // 깃허브 커밋 파일 상태
+      language: 'c' | 'cpp' | 'text' | 'unknown';
+      content: string;
+      error?: string; // 선택값으로 변경!
+    };
+    // 2. 각 파일의 내용 가져오기
+    // const results: { file: string; cppcheck: ScannerResult; clangTidy: ScannerResult }[] = [];
+    const results: ChangedFileWithContent[] = [];
+
+    for (const file of files) {
+      const filePath = file.filename;
+
+      const contentUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/contents/${filePath}?ref=${commitSha}`;
+      try {
+        const contentRes = await this.httpService
+          .get(contentUrl, { headers })
+          .toPromise();
+        const encoded = contentRes?.data?.content;
+        const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+
+        results.push({
+          filename: filePath,
+          status: file.status, // added, modified, removed
+          language: filePath.endsWith('.c')
+            ? 'c'
+            : filePath.endsWith('.cpp')
+              ? 'cpp'
+              : 'text',
+          content: decoded,
+        });
+      } catch (err) {
+        console.error(`파일 ${filePath} 읽기 실패`, err.message);
+        // 실패한 파일도 기록해줄 수 있음
+        results.push({
+          filename: filePath,
+          status: file.status,
+          language: 'unknown',
+          content: '',
+          error: err.message,
+        });
+      }
+    }
+    return results;
+  }
+
+  async getFilesChangedInPullRequest(
+    owner: string,
+    repo: string,
+    pullNumber: number,
+    userId: string,
+  ): Promise<ChangedFileWithContent[]> {
+    const headers = await this.getHeaders(userId);
+    const allResults: ChangedFileWithContent[] = [];
+
+    // 1. PR에 포함된 커밋들 가져오기
+    const commitsUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/pulls/${pullNumber}/commits`;
+    const commitsRes = await this.httpService
+      .get(commitsUrl, { headers })
+      .toPromise();
+    const commits = commitsRes?.data;
+
+    if (!commits || commits.length === 0) {
+      throw new Error('PR에 포함된 커밋이 없습니다.');
+    }
+
+    // 2. 커밋별로 변경된 파일들을 쭉 순회
+    for (const commit of commits) {
+      const sha = commit.sha;
+      const commitUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/commits/${sha}`;
+      const commitRes = await this.httpService
+        .get(commitUrl, { headers })
+        .toPromise();
+
+      const files = commitRes?.data?.files;
+      if (!files) continue;
+
+      for (const file of files) {
+        const path = file.filename;
+
+        // 중복 검사 방지: 이미 처리한 파일은 건너뜀
+        if (allResults.find((r) => r.filename === path)) continue;
+
+        try {
+          const contentUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/contents/${path}?ref=${sha}`;
+          const contentRes = await this.httpService
+            .get(contentUrl, { headers })
+            .toPromise();
+          const encoded = contentRes?.data?.content;
+          const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+          // console.log("qewrqwr : ", path);
+          // console.log("func : ", detectLanguage(path));
+          allResults.push({
+            filename: path,
+            status: file.status,
+            language: detectLanguage(path),
+            content: decoded,
+          });
+        } catch (err) {
+          allResults.push({
+            filename: path,
+            status: file.status,
+            language: 'unknown',
+            content: '',
+            error: err.message,
+          });
+        }
+      }
+    }
+
+    return allResults;
+  }
+  async getChangedFilesWithContent(
+    owner: string,
+    repo: string,
+    commitSha: string,
+    userId: string,
+  ) {
+    const headers = await this.getHeaders(userId);
+
+    // 1. 커밋에서 변경된 파일 목록 얻기
+    const commitUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/commits/${commitSha}`;
+    const commitRes = await this.httpService
+      .get(commitUrl, { headers })
+      .toPromise();
+
+    const files = commitRes?.data?.files;
+    if (!files || files.length === 0) {
+      throw new Error('변경된 파일이 없습니다.');
+    }
+    type ChangedFileWithContent = {
+      filename: string;
+      status: 'added' | 'modified' | 'removed'; // 깃허브 커밋 파일 상태
+      language: 'c' | 'cpp' | 'text' | 'unknown';
+      content: string;
+      error?: string; // 선택값으로 변경!
+    };
+    // 2. 각 파일의 내용 가져오기
+    // const results: { file: string; cppcheck: ScannerResult; clangTidy: ScannerResult }[] = [];
+    const results: ChangedFileWithContent[] = [];
+
+    for (const file of files) {
+      const filePath = file.filename;
+
+      const contentUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/contents/${filePath}?ref=${commitSha}`;
+      try {
+        const contentRes = await this.httpService
+          .get(contentUrl, { headers })
+          .toPromise();
+        const encoded = contentRes?.data?.content;
+        const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+
+        results.push({
+          filename: filePath,
+          status: file.status, // added, modified, removed
+          language: filePath.endsWith('.c')
+            ? 'c'
+            : filePath.endsWith('.cpp')
+              ? 'cpp'
+              : 'text',
+          content: decoded,
+        });
+      } catch (err) {
+        console.error(`파일 ${filePath} 읽기 실패`, err.message);
+        // 실패한 파일도 기록해줄 수 있음
+        results.push({
+          filename: filePath,
+          status: file.status,
+          language: 'unknown',
+          content: '',
+          error: err.message,
+        });
+      }
+    }
+    return results;
+  }
+
+  async getFilesChangedInPullRequest(
+    owner: string,
+    repo: string,
+    pullNumber: number,
+    userId: string,
+  ): Promise<ChangedFileWithContent[]> {
+    const headers = await this.getHeaders(userId);
+    const allResults: ChangedFileWithContent[] = [];
+
+    // 1. PR에 포함된 커밋들 가져오기
+    const commitsUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/pulls/${pullNumber}/commits`;
+    const commitsRes = await this.httpService
+      .get(commitsUrl, { headers })
+      .toPromise();
+    const commits = commitsRes?.data;
+
+    if (!commits || commits.length === 0) {
+      throw new Error('PR에 포함된 커밋이 없습니다.');
+    }
+
+    // 2. 커밋별로 변경된 파일들을 쭉 순회
+    for (const commit of commits) {
+      const sha = commit.sha;
+      const commitUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/commits/${sha}`;
+      const commitRes = await this.httpService
+        .get(commitUrl, { headers })
+        .toPromise();
+
+      const files = commitRes?.data?.files;
+      if (!files) continue;
+
+      for (const file of files) {
+        const path = file.filename;
+
+        // 중복 검사 방지: 이미 처리한 파일은 건너뜀
+        if (allResults.find((r) => r.filename === path)) continue;
+
+        try {
+          const contentUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/contents/${path}?ref=${sha}`;
+          const contentRes = await this.httpService
+            .get(contentUrl, { headers })
+            .toPromise();
+          const encoded = contentRes?.data?.content;
+          const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+          // console.log("qewrqwr : ", path);
+          // console.log("func : ", detectLanguage(path));
+          allResults.push({
+            filename: path,
+            status: file.status,
+            language: detectLanguage(path),
+            content: decoded,
+          });
+        } catch (err) {
+          allResults.push({
+            filename: path,
+            status: file.status,
+            language: 'unknown',
+            content: '',
+            error: err.message,
+          });
+        }
+      }
+    }
+
+    return allResults;
+  }
+}

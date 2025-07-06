@@ -19,43 +19,68 @@ export class GithubController {
     @InjectRepository(GithubToken)
     private githubTokenRepository: Repository<GithubToken>,
   ) {}
-    
+
+
   @UseGuards(JwtAuthGuard)
-  @Get('connect/:repoUrl')
-  async connectWebhook(@Param('repoUrl') repoUrl: string, @CurrentUser() user: User) {
-    const decodedRepoUrl = decodeURIComponent(repoUrl);
-    return this.githubService.connect(decodedRepoUrl, user);
+  // ↓ 명명된 와일드카드로 변경
+  @Get('connect/:owner/:repo')
+  async connectWebhook(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.githubService.connect(owner, repo, user);
   }
 
-  @Post('webhook')
-  async webhook(@Body() body: any) {
-    console.log('webhook', body);
-  }
+  
 
   @UseGuards(JwtAuthGuard)
   @Get('repos/:owner/:repo')
-  getRepo(@Param('owner') owner: string, @Param('repo') repo: string, @CurrentUser() user: any) {
+  getRepo(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: any,
+  ) {
+
     const userId = user?.id;
     return this.githubService.getRepo(owner, repo, userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('repos/:owner/:repo/branches')
-  getBranches(@Param('owner') owner: string, @Param('repo') repo: string, @CurrentUser() user: any) {
+  getBranches(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: any,
+  ) {
+
     const userId = user?.id;
     return this.githubService.getBranches(owner, repo, userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('repos/:owner/:repo/commits')
-  getCommits(@Param('owner') owner: string, @Param('repo') repo: string, @Query('sha') sha: string, @CurrentUser() user: any) {
+  
+  getCommits(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Query('sha') sha: string,
+    @CurrentUser() user: any,
+  ) {
+
     const userId = user?.id;
     return this.githubService.getCommits(owner, repo, userId, sha);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('repos/:owner/:repo/pulls')
-  getPulls(@Param('owner') owner: string, @Param('repo') repo: string, @CurrentUser() user: any) {
+
+  getPulls(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: any,
+  ) {
+
     const userId = user?.id;
     return this.githubService.getPulls(owner, repo, userId);
   }
@@ -65,14 +90,19 @@ export class GithubController {
    */
   @UseGuards(JwtAuthGuard)
   @Get('project/:projectId/repo')
-  async getRepoByProjectId(@Param('projectId') projectId: string, @CurrentUser() user: any) {
+
+  async getRepoByProjectId(
+    @Param('projectId') projectId: string,
+    @CurrentUser() user: any,
+  ) {
     const project = await this.projectService.findOne(projectId);
     const repoUrl = project.repository_url;
     if (!repoUrl) throw new Error('저장소 URL이 없습니다');
-    
+
     const parsed = parseGitHubUrl(repoUrl);
     if (!parsed) throw new Error('저장소 URL이 올바르지 않습니다');
-    
+
+
     const userId = user?.id;
     return this.githubService.getRepo(parsed.owner, parsed.repo, userId);
   }
@@ -82,14 +112,19 @@ export class GithubController {
    */
   @UseGuards(JwtAuthGuard)
   @Get('project/:projectId/branches')
-  async getBranchesByProjectId(@Param('projectId') projectId: string, @CurrentUser() user: any) {
+
+  async getBranchesByProjectId(
+    @Param('projectId') projectId: string,
+    @CurrentUser() user: any,
+  ) {
     const project = await this.projectService.findOne(projectId);
     const repoUrl = project.repository_url;
     if (!repoUrl) throw new Error('저장소 URL이 없습니다');
-    
+
     const parsed = parseGitHubUrl(repoUrl);
     if (!parsed) throw new Error('저장소 URL이 올바르지 않습니다');
-    
+
+
     const userId = user?.id;
     return this.githubService.getBranches(parsed.owner, parsed.repo, userId);
   }
@@ -99,16 +134,27 @@ export class GithubController {
    */
   @UseGuards(JwtAuthGuard)
   @Get('project/:projectId/commits')
-  async getCommitsByProjectId(@Param('projectId') projectId: string, @Query('sha') sha: string, @CurrentUser() user: any) {
+
+  async getCommitsByProjectId(
+    @Param('projectId') projectId: string,
+    @Query('sha') sha: string,
+    @CurrentUser() user: any,
+  ) {
     const project = await this.projectService.findOne(projectId);
     const repoUrl = project.repository_url;
     if (!repoUrl) throw new Error('저장소 URL이 없습니다');
-    
+
     const parsed = parseGitHubUrl(repoUrl);
     if (!parsed) throw new Error('저장소 URL이 올바르지 않습니다');
-    
+
     const userId = user?.id;
-    return this.githubService.getCommits(parsed.owner, parsed.repo, userId, sha);
+    return this.githubService.getCommits(
+      parsed.owner,
+      parsed.repo,
+      userId,
+      sha,
+    );
+
   }
 
   /**
@@ -116,14 +162,18 @@ export class GithubController {
    */
   @UseGuards(JwtAuthGuard)
   @Get('project/:projectId/pulls')
-  async getPullsByProjectId(@Param('projectId') projectId: string, @CurrentUser() user: any) {
+
+  async getPullsByProjectId(
+    @Param('projectId') projectId: string,
+    @CurrentUser() user: any,
+  ) {
     const project = await this.projectService.findOne(projectId);
     const repoUrl = project.repository_url;
     if (!repoUrl) throw new Error('저장소 URL이 없습니다');
-    
+
     const parsed = parseGitHubUrl(repoUrl);
     if (!parsed) throw new Error('저장소 URL이 올바르지 않습니다');
-    
+
     const userId = user?.id;
     return this.githubService.getPulls(parsed.owner, parsed.repo, userId);
   }
@@ -145,7 +195,15 @@ export class GithubController {
   @Post('create-repo')
   async createRepository(
     @CurrentUser() user: any,
-    @Body() body: { repoName: string; description: string; isPrivate: boolean; orgName?: string }
+
+    @Body()
+    body: {
+      repoName: string;
+      description: string;
+      isPrivate: boolean;
+      orgName?: string;
+    },
+
   ) {
     try {
       console.log(`[GitHub Controller] 저장소 생성 요청 시작`);
@@ -155,32 +213,39 @@ export class GithubController {
         console.error(`[GitHub Controller] 사용자 ID가 없습니다`);
         throw new Error('사용자 인증이 필요합니다');
       }
-      
+
+
       console.log(`[GitHub Controller] 사용자 ID: ${userId}`);
-      
+
       const { repoName, description, isPrivate, orgName } = body;
-      
+
+
       // 입력값 검증
       if (!repoName) {
         throw new Error('저장소 이름이 필요합니다');
       }
-      
-      console.log(`[GitHub Controller] GitHub 서비스 호출: ${repoName}, ${description}, ${isPrivate}, ${userId}, 조직: ${orgName || '사용자'}`);
-      
+
+      console.log(
+        `[GitHub Controller] GitHub 서비스 호출: ${repoName}, ${description}, ${isPrivate}, ${userId}, 조직: ${orgName || '사용자'}`,
+      );
+
+
       const repoData = await this.githubService.createRepository(
         repoName,
         description,
         isPrivate,
         userId,
-        orgName
+
+        orgName,
       );
-      
+
       console.log(`[GitHub Controller] 저장소 생성 성공:`, repoData);
-      
+
       return {
         success: true,
         repository: repoData,
-        repositoryUrl: repoData.html_url
+        repositoryUrl: repoData.html_url,
+
       };
     } catch (error) {
       console.error(`[GitHub Controller] 저장소 생성 실패:`, error);
@@ -195,29 +260,36 @@ export class GithubController {
   @Get('token-status')
   async getTokenStatus(@CurrentUser() user: any) {
     const userId = user?.id;
-    
+
+
     try {
       console.log(`[GitHub Controller] 토큰 상태 확인: ${userId}`);
-      
+
       // 토큰 존재 여부 확인
-      const tokenEntity = await this.githubTokenRepository.findOne({ 
-        where: { user_id: userId, provider: 'github' } 
+      const tokenEntity = await this.githubTokenRepository.findOne({
+        where: { user_id: userId, provider: 'github' },
       });
-      
+
       if (!tokenEntity) {
         return {
           success: false,
-          message: 'GitHub 토큰이 없습니다. GitHub OAuth 인증을 먼저 완료해주세요.',
-          hasToken: false
+          message:
+            'GitHub 토큰이 없습니다. GitHub OAuth 인증을 먼저 완료해주세요.',
+          hasToken: false,
         };
       }
-      
+
+
       // GitHub API로 토큰 유효성 검증
       try {
         const userInfo = await this.githubService.getUserInfo(userId);
         // 토큰 스코프 확인
-        const scopes = await this.githubService.getTokenScopes(tokenEntity.access_token);
-        
+
+        const scopes = await this.githubService.getTokenScopes(
+          tokenEntity.access_token,
+        );
+
+
         return {
           success: true,
           message: 'GitHub 토큰이 유효합니다.',
@@ -231,7 +303,8 @@ export class GithubController {
           success: false,
           message: `GitHub 토큰이 만료되었거나 유효하지 않습니다: ${apiError.message}`,
           hasToken: true,
-          tokenValid: false
+          tokenValid: false,
+
         };
       }
     } catch (error) {
@@ -239,6 +312,7 @@ export class GithubController {
       throw new Error(`토큰 상태 확인 실패: ${error.message}`);
     }
   }
+
   /**
    * 사용자가 속한 GitHub 조직 목록을 가져오는 엔드포인트
    */
@@ -313,4 +387,38 @@ export class GithubController {
       repo: string; 
       issueTitle: string; 
       baseBranch?: 'main' | 'master'
+
+@UseGuards(JwtAuthGuard)
+  @Get('repos/:owner/:repo/commit/:sha/files')
+  async getPullRequestCommitFiles(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('sha') sha: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.githubService.getChangedFilesWithContent(
+      owner,
+      repo,
+      sha,
+      user.id,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('repos/:owner/:repo/pulls/:prNumber/files')
+  async getFilesInPR(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('prNumber') prNumber: string,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.id;
+    return this.githubService.getFilesChangedInPullRequest(
+      owner,
+      repo,
+      parseInt(prNumber, 10),
+      userId,
+    );
+  }
+
 }
