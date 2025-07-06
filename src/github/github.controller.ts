@@ -300,7 +300,7 @@ export class GithubController {
     @Param('repo') repo: string,
   ) {
     return await this.githubPullRequestService.getPullRequestFileChanges(user, projectId, pull_number, owner, repo);
-  
+  }
   /**
    * 사용자가 속한 GitHub 조직 목록을 가져오는 엔드포인트
    */
