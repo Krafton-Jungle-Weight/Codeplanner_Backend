@@ -39,11 +39,9 @@ export class Issue {
   @Column({ type: 'varchar', length: 50, nullable: true })
   tag: string;
 
-
   /**
    * 연결된 커밋들 (1:N 관계: 한 이슈에 여러 커밋)
    */
   @OneToMany(() => GithubCommits, (commit) => commit.issue)
   commits: GithubCommits[];
-
 }

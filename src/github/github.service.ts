@@ -9,7 +9,6 @@ import axios from 'axios';
 import { detectLanguage } from './github.utils';
 import { ChangedFileWithContent } from './dto/github.dto';
 
-
 @Injectable()
 export class GithubService {
   private readonly githubApiUrl = 'https://api.github.com';
@@ -44,7 +43,6 @@ export class GithubService {
         : 'null',
       connected_at: tokenEntity.connected_at,
     });
-
 
     return {
       Authorization: `token ${tokenEntity.access_token}`,
@@ -135,17 +133,13 @@ export class GithubService {
     return response.data;
   }
 
-
   async connect(owner: string, repo: string, user: User) {
-
     console.log('owner', owner);
     console.log('repo', repo);
     console.log('user', user);
     const githubToken = await this.githubTokenRepository.findOne({
       where: { user_id: user.id },
     });
-
-
 
     if (!githubToken) {
       throw new NotFoundException('Github token not found');
@@ -181,23 +175,19 @@ export class GithubService {
   // github.service.ts
   async getTree(owner: string, repo: string, userId: string, branch: string) {
     // 브랜치의 sha를 먼저 가져옴
-
     const branchRes = await this.httpService
       .get(`${this.githubApiUrl}/repos/${owner}/${repo}/branches/${branch}`, {
         headers: await this.getHeaders(userId),
       })
       .toPromise();
-
     const sha = branchRes?.data?.commit?.sha;
     if (!sha) throw new Error('브랜치 sha를 찾을 수 없습니다');
 
     // 트리 정보 요청
     const url = `${this.githubApiUrl}/repos/${owner}/${repo}/git/trees/${sha}?recursive=1`;
-
     const response = await this.httpService
       .get(url, { headers: await this.getHeaders(userId) })
       .toPromise();
-
     return response?.data;
   }
 
@@ -209,20 +199,33 @@ export class GithubService {
    * @param userId 사용자 ID
    * @param orgName 조직 이름 (선택사항, 없으면 사용자 저장소로 생성)
    */
-
-  async createRepository(repoName: string, description: string, isPrivate: boolean, userId: string, orgName?: string) {
+  async createRepository(
+    repoName: string,
+    description: string,
+    isPrivate: boolean,
+    userId: string,
+    orgName?: string,
+  ) {
     try {
-      console.log(`[GitHub Service] 저장소 생성 시작: ${repoName}, 사용자: ${userId}, 조직: ${orgName || '사용자'}`);
-      
+      console.log(
+        `[GitHub Service] 저장소 생성 시작: ${repoName}, 사용자: ${userId}, 조직: ${orgName || '사용자'}`,
+      );
+
       // 사용자 토큰 확인
-      const tokenEntity = await this.githubTokenRepository.findOne({ where: { user_id: userId, provider: 'github' } });
+      const tokenEntity = await this.githubTokenRepository.findOne({
+        where: { user_id: userId, provider: 'github' },
+      });
       if (!tokenEntity) {
-        console.error(`[GitHub Service] 사용자 ${userId}의 GitHub 토큰을 찾을 수 없습니다`);
+        console.error(
+          `[GitHub Service] 사용자 ${userId}의 GitHub 토큰을 찾을 수 없습니다`,
+        );
         throw new Error('GitHub access token not found for user');
       }
-      
-      console.log(`[GitHub Service] 토큰 확인 완료: ${tokenEntity.access_token.substring(0, 10)}...`);
-      
+
+      console.log(
+        `[GitHub Service] 토큰 확인 완료: ${tokenEntity.access_token.substring(0, 10)}...`,
+      );
+
       // 먼저 사용자 정보를 가져와서 권한 확인
       const userInfo = await this.getUserInfo(userId);
       console.log(`[GitHub Service] 사용자 정보:`, userInfo);
@@ -252,14 +255,13 @@ export class GithubService {
       }
       
 
+
       const data = {
         name: repoName,
         description: description,
         private: isPrivate,
         auto_init: true, // README 파일 자동 생성
       };
-
-      
 
       let url: string;
       if (orgName) {
@@ -291,12 +293,10 @@ export class GithubService {
     } catch (error) {
       console.error(`[GitHub Service] 저장소 생성 실패:`, error);
 
-
       if (error.response) {
         console.error(`[GitHub Service] GitHub API 응답 오류:`, {
           status: error.response.status,
           statusText: error.response.statusText,
-
           data: error.response.data,
         });
 
@@ -329,10 +329,12 @@ export class GithubService {
    */
   async getUserInfo(userId: string) {
     const url = `${this.githubApiUrl}/user`;
-    const response = await this.httpService.get(url, { 
-      headers: await this.getHeaders(userId) 
-    }).toPromise();
-    
+    const response = await this.httpService
+      .get(url, {
+        headers: await this.getHeaders(userId),
+      })
+      .toPromise();
+
     return response?.data;
   }
 
@@ -678,6 +680,7 @@ export class GithubService {
 
     return response?.data;
   }
+
 
   async getTokenScopes(accessToken: string): Promise<string[]> {
     const response = await this.httpService

@@ -185,7 +185,7 @@ export class IssuesService {
       dto.startDate,
       dto.dueDate,
       dto.position,
-      dto.tag,
+      dto.tag ,
     ]);
 
     await this.projectService.updateProjectTagNumber(projectId);

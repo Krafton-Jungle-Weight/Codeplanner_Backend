@@ -53,34 +53,29 @@ export class GithubController {
     @Param('repo') repo: string,
     @CurrentUser() user: any,
   ) {
-
     const userId = user?.id;
     return this.githubService.getBranches(owner, repo, userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('repos/:owner/:repo/commits')
-  
   getCommits(
     @Param('owner') owner: string,
     @Param('repo') repo: string,
     @Query('sha') sha: string,
     @CurrentUser() user: any,
   ) {
-
     const userId = user?.id;
     return this.githubService.getCommits(owner, repo, userId, sha);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('repos/:owner/:repo/pulls')
-
   getPulls(
     @Param('owner') owner: string,
     @Param('repo') repo: string,
     @CurrentUser() user: any,
   ) {
-
     const userId = user?.id;
     return this.githubService.getPulls(owner, repo, userId);
   }
@@ -90,7 +85,6 @@ export class GithubController {
    */
   @UseGuards(JwtAuthGuard)
   @Get('project/:projectId/repo')
-
   async getRepoByProjectId(
     @Param('projectId') projectId: string,
     @CurrentUser() user: any,
@@ -102,7 +96,6 @@ export class GithubController {
     const parsed = parseGitHubUrl(repoUrl);
     if (!parsed) throw new Error('저장소 URL이 올바르지 않습니다');
 
-
     const userId = user?.id;
     return this.githubService.getRepo(parsed.owner, parsed.repo, userId);
   }
@@ -112,7 +105,6 @@ export class GithubController {
    */
   @UseGuards(JwtAuthGuard)
   @Get('project/:projectId/branches')
-
   async getBranchesByProjectId(
     @Param('projectId') projectId: string,
     @CurrentUser() user: any,
@@ -124,7 +116,6 @@ export class GithubController {
     const parsed = parseGitHubUrl(repoUrl);
     if (!parsed) throw new Error('저장소 URL이 올바르지 않습니다');
 
-
     const userId = user?.id;
     return this.githubService.getBranches(parsed.owner, parsed.repo, userId);
   }
@@ -134,7 +125,6 @@ export class GithubController {
    */
   @UseGuards(JwtAuthGuard)
   @Get('project/:projectId/commits')
-
   async getCommitsByProjectId(
     @Param('projectId') projectId: string,
     @Query('sha') sha: string,
@@ -154,7 +144,6 @@ export class GithubController {
       userId,
       sha,
     );
-
   }
 
   /**
@@ -162,7 +151,6 @@ export class GithubController {
    */
   @UseGuards(JwtAuthGuard)
   @Get('project/:projectId/pulls')
-
   async getPullsByProjectId(
     @Param('projectId') projectId: string,
     @CurrentUser() user: any,
@@ -195,7 +183,6 @@ export class GithubController {
   @Post('create-repo')
   async createRepository(
     @CurrentUser() user: any,
-
     @Body()
     body: {
       repoName: string;
@@ -203,7 +190,6 @@ export class GithubController {
       isPrivate: boolean;
       orgName?: string;
     },
-
   ) {
     try {
       console.log(`[GitHub Controller] 저장소 생성 요청 시작`);
@@ -214,11 +200,9 @@ export class GithubController {
         throw new Error('사용자 인증이 필요합니다');
       }
 
-
       console.log(`[GitHub Controller] 사용자 ID: ${userId}`);
 
       const { repoName, description, isPrivate, orgName } = body;
-
 
       // 입력값 검증
       if (!repoName) {
@@ -229,13 +213,11 @@ export class GithubController {
         `[GitHub Controller] GitHub 서비스 호출: ${repoName}, ${description}, ${isPrivate}, ${userId}, 조직: ${orgName || '사용자'}`,
       );
 
-
       const repoData = await this.githubService.createRepository(
         repoName,
         description,
         isPrivate,
         userId,
-
         orgName,
       );
 
@@ -245,7 +227,6 @@ export class GithubController {
         success: true,
         repository: repoData,
         repositoryUrl: repoData.html_url,
-
       };
     } catch (error) {
       console.error(`[GitHub Controller] 저장소 생성 실패:`, error);
@@ -260,7 +241,6 @@ export class GithubController {
   @Get('token-status')
   async getTokenStatus(@CurrentUser() user: any) {
     const userId = user?.id;
-
 
     try {
       console.log(`[GitHub Controller] 토큰 상태 확인: ${userId}`);
@@ -279,16 +259,13 @@ export class GithubController {
         };
       }
 
-
       // GitHub API로 토큰 유효성 검증
       try {
         const userInfo = await this.githubService.getUserInfo(userId);
         // 토큰 스코프 확인
-
         const scopes = await this.githubService.getTokenScopes(
           tokenEntity.access_token,
         );
-
 
         return {
           success: true,
@@ -304,7 +281,6 @@ export class GithubController {
           message: `GitHub 토큰이 만료되었거나 유효하지 않습니다: ${apiError.message}`,
           hasToken: true,
           tokenValid: false,
-
         };
       }
     } catch (error) {
@@ -312,7 +288,7 @@ export class GithubController {
       throw new Error(`토큰 상태 확인 실패: ${error.message}`);
     }
   }
-
+  
   /**
    * 사용자가 속한 GitHub 조직 목록을 가져오는 엔드포인트
    */
@@ -420,5 +396,4 @@ export class GithubController {
       userId,
     );
   }
-
 }

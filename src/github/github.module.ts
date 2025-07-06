@@ -24,4 +24,3 @@ import { Issue } from 'src/issues/issues.entity';
   exports: [GithubService, JwtAuthGuard],
 })
 export class GithubModule {}
-
