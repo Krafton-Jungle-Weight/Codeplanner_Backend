@@ -13,6 +13,7 @@ import { IssuesModule } from './issues/issues.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { SummaryModule } from './summary/summary.module';
 import { GithubModule } from './github/github.module';
+import { AimodelModule } from './aimodel/aimodel.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { GithubModule } from './github/github.module';
     TimelineModule,
     SummaryModule,
     GithubModule,
+    AimodelModule,
   ],
   controllers: [AppController, EmailController],
 
