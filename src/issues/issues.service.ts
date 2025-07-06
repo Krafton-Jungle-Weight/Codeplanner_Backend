@@ -188,23 +188,30 @@ export class IssuesService {
 
     await this.projectService.updateProjectTagNumber(projectId);
 
-    // 자동으로 브랜치 생성
+    // 브랜치 생성 옵션이 활성화된 경우에만 브랜치 생성
     let branchName: string | undefined;
     let branchError: string | undefined;
-    try {
-      const branchResult = await this.createBranchForIssue(projectId, dto.title, user.id);
-      branchName = branchResult?.branchName;
-      branchError = branchResult?.error;
-    } catch (error) {
-      console.error('브랜치 생성 실패:', error);
-      branchError = '브랜치 생성 중 예상치 못한 오류가 발생했습니다.';
+    
+    if (dto.createBranch !== false) { // 기본값이 true이므로 false가 아닌 경우 브랜치 생성
+      try {
+        const branchResult = await this.createBranchForIssue(projectId, dto.title, user.id);
+        branchName = branchResult?.branchName;
+        branchError = branchResult?.error;
+        console.log(`브랜치 생성 결과 - branchName: ${branchName}, branchError: ${branchError}`);
+      } catch (error) {
+        console.error('브랜치 생성 실패:', error);
+        branchError = '브랜치 생성 중 예상치 못한 오류가 발생했습니다.';
+      }
     }
 
-    return { 
+    const response = { 
       success: 'Issue created successfully',
       branchName,
       branchError
     };
+    
+    console.log(`createIssue 최종 응답:`, response);
+    return response;
   }
 
   /**
@@ -249,6 +256,7 @@ export class IssuesService {
       );
 
       console.log(`이슈 '${issueTitle}'을 위한 브랜치가 생성되었습니다: ${branchData.branchName}`);
+      console.log(`브랜치 생성 결과:`, branchData);
       
       return { branchName: branchData.branchName };
     } catch (error) {
