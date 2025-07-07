@@ -684,8 +684,6 @@ export class GithubService {
     // 5. 접두사 추가 (feature/)
     
     let branchName = issueTitle
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '') // 특수문자 제거 (하이픈, 언더스코어, 공백 제외)
       .replace(/\s+/g, '-') // 공백을 하이픈으로 변환
       .replace(/-+/g, '-') // 연속된 하이픈을 하나로
       .replace(/^-|-$/g, ''); // 앞뒤 하이픈 제거
