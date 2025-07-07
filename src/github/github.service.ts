@@ -822,4 +822,20 @@ export class GithubService {
 
     return allResults;
   }
+  async getUserIdFromGithubWebhookSender(sender: { id: number; login: string }): Promise<string> {
+    const { id, login } = sender;
+
+    const tokenEntity = await this.githubTokenRepository.findOne({
+      where: [
+        { provider: 'github', github_login: login },
+        { provider: 'github', github_id: id.toString() },
+      ],
+    });
+
+    if (!tokenEntity) {
+      throw new Error(`GitHub sender (${login}/${id}) 에 해당하는 사용자를 찾을 수 없습니다.`);
+    }
+
+    return tokenEntity.user_id;
+  }
 }

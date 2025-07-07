@@ -1,5 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsOptional } from 'class-validator';
 
 @Entity('user_oauth_accounts')
 export class GithubToken {
@@ -25,4 +25,12 @@ export class GithubToken {
   @Column({ type: 'timestamp' })
   @IsNotEmpty()
   connected_at: Date;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  @IsOptional()
+  github_login?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  @IsOptional()
+  github_id?: string;
 }

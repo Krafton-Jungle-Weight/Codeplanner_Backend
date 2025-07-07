@@ -15,10 +15,10 @@ export class GithubWebhookController {
     @Body() body: any, 
     @Headers() headers: any
   ) {
-      console.log('----------------------');
-      console.log('headers', headers);
-      console.log('webhook', body);
-      console.log('----------------------');
+      // console.log('----------------------');
+      // console.log('headers', headers);
+      // console.log('webhook', body);
+      // console.log('----------------------');
       const type = headers['x-github-event'];
       if (type == 'pull_request') {
         return this.handlePullRequestEvent(body);
@@ -133,18 +133,26 @@ export class GithubWebhookController {
       const [owner, repo] = repositoryName.split('/');
       const { number, head, base, title, user } = body.pull_request;
       const action = body.action;
+      const sender = body.sender;
+      const userId = await this.githubService.getUserIdFromGithubWebhookSender(sender);
 
       console.log(`PR #${number}: ${title} (${action})`);
 
       try {
         // PR의 변경된 파일들을 가져오기
-        const changedFiles =
-          await this.githubService.getFilesChangedInPullRequest(
-            owner,
-            repo,
-            number,
-            body.sender?.id || 'unknown',
-          );
+        // const changedFiles =
+        //   await this.githubService.getFilesChangedInPullRequest(
+        //     owner,
+        //     repo,
+        //     number,
+        //     body.sender?.id || 'unknown',
+        //   );
+        const changedFiles = await this.githubService.getFilesChangedInPullRequest(
+        owner,
+        repo,
+        number,
+        userId,
+        );
 
         // C/C++ 파일만 필터링
         const cppFiles = changedFiles.filter(
