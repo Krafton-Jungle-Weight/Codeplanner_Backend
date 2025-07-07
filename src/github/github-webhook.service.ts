@@ -19,7 +19,7 @@ export class GithubWebhookService {
    */
   private extractTagFromCommitMessage(commitMessage: string): string | null {
     // 영어-숫자 형식의 태그 패턴 (예: ABC-123, FEATURE-456, BUG-789)
-    const tagPattern = /[A-Z]+-\d+/g;
+    const tagPattern = /[A-Za-z]+-\d+/g;
     const matches = commitMessage.match(tagPattern);
 
     if (matches && matches.length > 0) {
