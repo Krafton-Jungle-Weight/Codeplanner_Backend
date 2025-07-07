@@ -37,7 +37,6 @@ import { AimodelModule } from './aimodel/aimodel.module';
     AnalysisModule,
     WebhookModule,
     AimodelModule,
-
   ],
   controllers: [AppController, EmailController],
 
