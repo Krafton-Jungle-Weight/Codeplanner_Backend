@@ -21,6 +21,7 @@
     "dev": "npm run start:dev"
   },
   "dependencies": {
+    "@google/genai": "^1.8.0",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
@@ -34,6 +35,8 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "date-fns": "^2.28.0",
+    "execa": "^9.6.0",
+    "headers": "^0.9.6",
     "nodemailer": "^7.0.3",
     "octokit": "^5.0.3",
     "pg": "^8.16.3",

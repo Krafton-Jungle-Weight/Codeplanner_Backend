@@ -11,16 +11,12 @@ import { ProjectModule } from 'src/project/project.module';
 import { GithubWebhookService } from './github-webhook.service';
 import { GithubWebhookController } from './github-webhook.controller';
 import { Issue } from 'src/issues/issues.entity';
+import { GithubPullRequestService } from './github-pull-request.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([GithubToken, GithubCommits, Issue]),
-    AuthModule,
-    HttpModule,
-    ProjectModule,
-  ],
+  imports: [TypeOrmModule.forFeature([GithubToken, GithubCommits, Issue]), AuthModule, HttpModule, ProjectModule],
   controllers: [GithubController, GithubWebhookController],
-  providers: [GithubService, JwtAuthGuard, GithubWebhookService],
-  exports: [GithubService, JwtAuthGuard],
+  providers: [GithubService, JwtAuthGuard, GithubPullRequestService, GithubWebhookService],
+  exports: [GithubService, JwtAuthGuard, GithubPullRequestService],
 })
 export class GithubModule {}
