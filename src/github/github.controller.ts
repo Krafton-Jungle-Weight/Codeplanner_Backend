@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { User } from 'src/user/user.entity';
 import { CurrentUser } from 'src/auth/user.decorator';
 import { parseGitHubUrl } from './github.utils';
+import { GithubPullRequestService } from './github-pull-request.service';
 
 
 @Controller('github')
@@ -18,7 +19,9 @@ export class GithubController {
     private readonly projectService: ProjectService,
     @InjectRepository(GithubToken)
     private githubTokenRepository: Repository<GithubToken>,
+    private readonly githubPullRequestService: GithubPullRequestService,
   ) {}
+
 
   @UseGuards(JwtAuthGuard)
   // ↓ 명명된 와일드카드로 변경
@@ -40,6 +43,7 @@ export class GithubController {
     @Param('repo') repo: string,
     @CurrentUser() user: any,
   ) {
+
     const userId = user?.id;
     return this.githubService.getRepo(owner, repo, userId);
   }
@@ -171,7 +175,7 @@ export class GithubController {
     @Param('projectId') projectId: string,
     @Body() body: any,
   ) {
-    return await this.githubService.createPullRequest(user, projectId, body);
+    return await this.githubPullRequestService.createPullRequest(user, projectId, body);
   }
 
   /**
@@ -286,6 +290,92 @@ export class GithubController {
       throw new Error(`토큰 상태 확인 실패: ${error.message}`);
     }
   }
+  @UseGuards(JwtAuthGuard)
+  @Get('project/:projectId/pull-request-file-changes/:pull_number/:owner/:repo')
+  async getPullRequestFileChanges(
+    @CurrentUser() user: any,
+    @Param('projectId') projectId: string,
+    @Param('pull_number') pull_number: string,
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+  ) {
+    return await this.githubPullRequestService.getPullRequestFileChanges(user, projectId, pull_number, owner, repo);
+  }
+  /**
+   * 사용자가 속한 GitHub 조직 목록을 가져오는 엔드포인트
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('organizations')
+  async getUserOrganizations(@CurrentUser() user: any) {
+    const userId = user?.id;
+    
+    try {
+      console.log(`[GitHub Controller] 사용자 조직 목록 조회: ${userId}`);
+      
+      const organizations = await this.githubService.getUserOrganizations(userId);
+      
+      return {
+        success: true,
+        organizations: organizations.map(org => ({
+          login: org.login,
+          id: org.id,
+          avatar_url: org.avatar_url,
+          description: org.description,
+          url: org.url,
+          html_url: org.html_url,
+          canCreateRepo: org.canCreateRepo,
+          role: org.role,
+          state: org.state,
+          permissionError: org.permissionError
+        }))
+      };
+    } catch (error) {
+      console.error(`[GitHub Controller] 조직 목록 조회 실패:`, error);
+      throw new Error(`조직 목록 조회 실패: ${error.message}`);
+    }
+  }
+
+  /**
+   * 특정 조직의 저장소 생성 권한을 확인하는 엔드포인트
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('organizations/:orgName/permissions')
+  async checkOrganizationPermissions(@CurrentUser() user: any, @Param('orgName') orgName: string) {
+    const userId = user?.id;
+    
+    try {
+      console.log(`[GitHub Controller] 조직 권한 확인: ${userId} -> ${orgName}`);
+      
+      const permissionCheck = await this.githubService.checkOrganizationRepoCreationPermission(userId, orgName);
+      const helpInfo = this.githubService.getOrganizationPermissionHelp(orgName);
+      
+      return {
+        success: true,
+        canCreateRepo: permissionCheck.canCreateRepo,
+        role: permissionCheck.role,
+        state: permissionCheck.state,
+        organization: permissionCheck.organization,
+        helpInfo
+      };
+    } catch (error) {
+      console.error(`[GitHub Controller] 조직 권한 확인 실패:`, error);
+      
+      // 권한 문제인 경우 도움말 정보와 함께 반환
+      const helpInfo = this.githubService.getOrganizationPermissionHelp(orgName);
+      
+      return {
+        success: false,
+        error: error.message,
+        canCreateRepo: false,
+        helpInfo
+      };
+    }
+  }
+      owner: string; 
+      repo: string; 
+      issueTitle: string; 
+      baseBranch?: 'main' | 'master'
+
 @UseGuards(JwtAuthGuard)
   @Get('repos/:owner/:repo/commit/:sha/files')
   async getPullRequestCommitFiles(

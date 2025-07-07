@@ -8,6 +8,7 @@ import {
   IsNumber,
   Min,
   MaxLength,
+  IsBoolean,
 } from 'class-validator';
 
 export class ReorderIssuesDto {
@@ -64,6 +65,12 @@ export class CreateIssueDto {
   @IsOptional()
   @IsString()
   tag?: string;
+
+
+  @IsOptional()
+  @IsBoolean()
+  createBranch?: boolean;
+
 }
 
 export class UpdateIssueDto {
