@@ -348,12 +348,21 @@ export class GithubService {
       
       // /user/memberships/orgs 엔드포인트를 사용하여 모든 멤버십 상태의 조직 가져오기
       const url = `${this.githubApiUrl}/user/memberships/orgs`;
+      console.log(`[GitHub Service] GitHub API 호출 URL: ${url}`);
+      
+      const headers = await this.getHeaders(userId);
+      console.log(`[GitHub Service] 요청 헤더:`, {
+        Authorization: headers.Authorization ? 'Bearer [HIDDEN]' : 'Not set',
+        Accept: headers.Accept
+      });
+      
       const response = await this.httpService.get(url, { 
-        headers: await this.getHeaders(userId) 
+        headers 
       }).toPromise();
       
       const memberships = response?.data || [];
       console.log(`[GitHub Service] 조직 멤버십 조회 성공: ${memberships.length}개 조직`);
+      console.log(`[GitHub Service] 응답 상태: ${response?.status}`);
       
       // 멤버십 정보에서 조직 정보 추출
       const organizations = memberships.map((membership: any) => ({
@@ -366,6 +375,12 @@ export class GithubService {
         role: membership.role,
         state: membership.state
       }));
+      
+      console.log(`[GitHub Service] 추출된 조직 목록:`, organizations.map(org => ({
+        login: org.login,
+        role: org.role,
+        state: org.state
+      })));
       
       // 각 조직의 저장소 생성 권한을 확인
       const organizationsWithPermissions = await Promise.all(
@@ -392,10 +407,25 @@ export class GithubService {
         })
       );
       
+      console.log(`[GitHub Service] 최종 조직 목록 (권한 포함):`, organizationsWithPermissions.map(org => ({
+        login: org.login,
+        canCreateRepo: org.canCreateRepo,
+        role: org.role,
+        state: org.state,
+        permissionError: org.permissionError
+      })));
+      
       return organizationsWithPermissions;
       
     } catch (error) {
       console.error(`[GitHub Service] 조직 목록 조회 실패:`, error);
+      console.error(`[GitHub Service] 오류 상세 정보:`, {
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText
+      });
       
       // GitHub API 오류 응답 확인
       if (error.response) {
