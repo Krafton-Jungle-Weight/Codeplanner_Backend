@@ -21,6 +21,9 @@ import { CurrentUser } from 'src/auth/user.decorator';
 import { GithubOauthDto } from './dto/github-oauth.dto';
 import axios from 'axios';
 import { GithubToken } from 'src/github/github.entity';
+import { EmailService } from 'src/email/email.service';
+import { VerifyResetTokenDto } from './dto/verify-reset-token.dto';
+import { EmailVerificationToken } from 'src/email/email.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -31,6 +34,9 @@ export class AuthController {
     private userRepository: Repository<User>,
     @InjectRepository(GithubToken)
     private githubTokenRepository: Repository<GithubToken>,
+    private readonly emailService: EmailService,
+    @InjectRepository(EmailVerificationToken)
+    private emailVerificationTokenRepository: Repository<EmailVerificationToken>,
   ) {}
 
   @Post('/login')
@@ -100,6 +106,46 @@ export class AuthController {
     await this.githubTokenRepository.save(githubToken);
     return res.status(200).json({
       message: '깃허브 로그인 성공',
+    });
+  }
+
+  @Post('/forgot-password')
+  async forgotPassword(@Body() input: { email: string }, @Res() res: Response){
+    const { email } = input;
+    const token = await this.authService.generateNewPasswordToken(email);
+    const result = await this.emailService.sendNewPasswordEmail(email, token);
+    return res.status(200).json({
+      message: '비밀번호 재설정 이메일 발송 완료',
+    });
+  }
+
+  @Post('/verify-reset-token')
+  async verifyResetToken(@Body() input: VerifyResetTokenDto, @Res() res: Response){
+    const { email, token } = input;
+    const isValid = await this.authService.verifyToken(email, token);
+    if(!isValid){
+      throw new UnprocessableEntityException('유효하지 않은 토큰입니다.');
+    }
+    await this.emailVerificationTokenRepository.delete({
+      email: email,
+      verification_code: token,
+    });
+    return res.status(200).json({
+      message: '토큰 검증 성공',
+    });
+  }
+
+  @Post('/reset-password')
+  async resetPassword(@Body() input: LoginUserDto, @Res() res: Response){
+    const { email, password } = input;
+    const user = await this.userRepository.findOneBy({ email });
+    if(!user){
+      throw new UnprocessableEntityException('존재하지 않는 이메일입니다.');
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await this.userRepository.update({ email: email }, { password_hash: hashedPassword });
+    return res.status(200).json({
+      message: '비밀번호 재설정 완료',
     });
   }
 }
