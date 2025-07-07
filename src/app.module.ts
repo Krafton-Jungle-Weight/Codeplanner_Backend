@@ -16,6 +16,8 @@ import { GithubModule } from './github/github.module';
 import { AnalysisModule } from './analysis/analysis.module';
 import { WebhookModule } from './analysis/webhook/webhook.module';
 import { AimodelModule } from './aimodel/aimodel.module';
+import { NotificationModule } from './notification/notification.moduel';
+import { CommentModule } from './comments/comment.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { AimodelModule } from './aimodel/aimodel.module';
     AnalysisModule,
     WebhookModule,
     AimodelModule,
+    NotificationModule,
+    CommentModule,
   ],
   controllers: [AppController, EmailController],
 

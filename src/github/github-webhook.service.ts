@@ -18,7 +18,7 @@ export class GithubWebhookService {
    * 예: "feat: ABC-123 새로운 기능 추가" -> "ABC-123"
    */
   private extractTagFromCommitMessage(commitMessage: string): string | null {
-    // 영어-숫자 형식의 태그 패턴 (예: ABC-123, FEATURE-456, BUG-789)
+    // 영어(대소문자)-숫자 형식의 태그 패턴 (예: ABC-123, feature-456, Bug-789)
     const tagPattern = /[A-Za-z]+-\d+/g;
     const matches = commitMessage.match(tagPattern);
 

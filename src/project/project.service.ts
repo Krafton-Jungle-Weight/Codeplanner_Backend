@@ -341,4 +341,12 @@ export class ProjectService {
     await this.projectRepo.save(project);
     return { tag_number: project.tag_number };
   }
+
+
+
+  // 프로젝트 이름 조회
+  async getProjectName(projectId: string) {
+    const project = await this.projectRepo.findOne({ where: { id: projectId } });
+    return project?.title;
+  }
 }
