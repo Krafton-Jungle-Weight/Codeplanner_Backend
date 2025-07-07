@@ -15,15 +15,16 @@ export class GithubWebhookController {
     @Body() body: any, 
     @Headers() headers: any
   ) {
-      // console.log('----------------------');
-      // console.log('headers', headers);
-      // console.log('webhook', body);
-      // console.log('----------------------');
+      console.log('----------------------');
+      console.log('headers', headers);
+      console.log('webhook', body);
+      console.log('----------------------');
       const type = headers['x-github-event'];
-      if (type == 'push') {
-        return this.handlePushEvent(body);
-      } else if (type == 'pull-request') {
+      if (type == 'pull_request') {
         return this.handlePullRequestEvent(body);
+      }
+      else if (type == 'push') {
+          return this.handlePushEvent(body);
       }
   }
 
