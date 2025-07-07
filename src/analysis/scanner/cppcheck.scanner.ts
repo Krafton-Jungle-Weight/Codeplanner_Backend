@@ -1,6 +1,10 @@
 import { execa } from 'execa';
 import { BaseScanner, ScannerConfig, ScannerResult } from './base.scanner';
 
+/*
+ *
+ *
+ */
 export class CppcheckScanner extends BaseScanner {
   constructor(config: ScannerConfig) {
     super(config);

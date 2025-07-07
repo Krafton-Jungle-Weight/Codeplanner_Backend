@@ -14,6 +14,7 @@ import { TimelineModule } from './timeline/timeline.module';
 import { SummaryModule } from './summary/summary.module';
 import { GithubModule } from './github/github.module';
 import { AnalysisModule } from './analysis/analysis.module';
+import { WebhookModule } from './analysis/webhook/webhook.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AnalysisModule } from './analysis/analysis.module';
     SummaryModule,
     GithubModule,
     AnalysisModule,
+    WebhookModule,
   ],
   controllers: [AppController, EmailController],
 
