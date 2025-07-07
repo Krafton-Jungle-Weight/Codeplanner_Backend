@@ -130,11 +130,13 @@ export class UserService {
     if (emailVerificationToken.expires_at < new Date()) {
       throw new BadRequestException('이메일 인증 토큰이 만료되었습니다.');
     }
-    await this.userRepository.update({ email: email }, { is_verified: true });
-    await this.emailVerificationTokenRepository.delete({
+    console.log('삭제 시도:', { email: email, verification_code: verifyToken });
+    const result = await this.emailVerificationTokenRepository.delete({
       email: email,
       verification_code: verifyToken,
     });
+    console.log('Delete result:', result);
+    await this.userRepository.update({ email: email }, { is_verified: true });
     return;
   }
 

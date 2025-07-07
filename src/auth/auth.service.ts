@@ -1,10 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from 'src/user/user.service';
+import * as uuid from 'uuid';
+import { EmailVerificationToken } from 'src/email/email.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(private readonly jwtService: JwtService,
+
+    @InjectRepository(EmailVerificationToken)
+    private emailVerificationTokenRepository: Repository<EmailVerificationToken>,
+  ) {}
 
   getAccessToken({ user, res }) {
     const accessToken = this.jwtService.sign(
@@ -52,5 +60,43 @@ export class AuthService {
     });
 
     return refreshToken;
+  }
+
+  async generateNewPasswordToken(email: string) {
+    // 5글자짜리 영어(대소문자)와 숫자로 이루어진 토큰 생성
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let token = '';
+    for (let i = 0; i < 5; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    await this.emailVerificationTokenRepository.save({
+      email: email,
+      verification_code: token,
+      expires_at: new Date(Date.now() + 3 * 60 * 1000),
+    });
+    return token;
+  }
+
+  // 사용자가 입력한 5글자 토큰이 DB에 저장된 토큰과 일치하는지 확인하는 함수
+  async verifyToken(email: string, inputToken: string) {
+    // DB에서 해당 이메일과 토큰이 일치하는 레코드 조회 (만료시간도 체크)
+    const tokenRecord = await this.emailVerificationTokenRepository.findOneBy({
+      email: email,
+      verification_code: inputToken,
+    });
+
+    if (!tokenRecord) {
+      // 토큰이 없거나 일치하지 않음
+      return false;
+    }
+
+    // 토큰 만료 확인
+    if (tokenRecord.expires_at < new Date()) {
+      // 토큰이 만료됨
+      return false;
+    }
+
+    // 토큰이 일치하고 만료되지 않음
+    return true;
   }
 }
