@@ -172,5 +172,23 @@ export class UserService {
       select: ['id', 'email', 'display_name'],
     });
   }
+
+  // id로 유저 찾기
+  async getUserByIdForIssue(id: string) {
+    const user = await this.userRepository.findOneBy({ id: id });
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다.');
+    }
+    return { id: user.id, displayName: user.display_name };
+  }
+
+
+
+
+
+
+
+
+  
 }
 

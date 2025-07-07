@@ -1,5 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { GithubCommits } from '../github/github-commits.entity';
+import { Comment } from '../comments/comment.entity';
 
 @Entity('issue')
 export class Issue {
@@ -44,4 +45,10 @@ export class Issue {
    */
   @OneToMany(() => GithubCommits, (commit) => commit.issue)
   commits: GithubCommits[];
+
+  /**
+   * 연결된 댓글들 (1:N 관계: 한 이슈에 여러 댓글)
+   */
+  @OneToMany(() => Comment, (comment) => comment.issue)
+  comments: Comment[];
 }

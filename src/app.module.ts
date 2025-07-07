@@ -14,6 +14,8 @@ import { TimelineModule } from './timeline/timeline.module';
 import { SummaryModule } from './summary/summary.module';
 import { GithubModule } from './github/github.module';
 import { AimodelModule } from './aimodel/aimodel.module';
+import { NotificationModule } from './notification/notification.moduel';
+import { CommentModule } from './comments/comment.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { AimodelModule } from './aimodel/aimodel.module';
     SummaryModule,
     GithubModule,
     AimodelModule,
+    NotificationModule,
+    CommentModule,
   ],
   controllers: [AppController, EmailController],
 
