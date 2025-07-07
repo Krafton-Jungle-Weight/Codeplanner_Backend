@@ -14,7 +14,7 @@ import { TimelineModule } from './timeline/timeline.module';
 import { SummaryModule } from './summary/summary.module';
 import { GithubModule } from './github/github.module';
 import { AnalysisModule } from './analysis/analysis.module';
-import { WebhookModule } from './analysis/webhook/webhook.module';
+// import { WebhookModule } from './analysis/webhook/webhook.module';
 import { AimodelModule } from './aimodel/aimodel.module';
 
 @Module({
@@ -35,7 +35,7 @@ import { AimodelModule } from './aimodel/aimodel.module';
     SummaryModule,
     GithubModule,
     AnalysisModule,
-    WebhookModule,
+    // WebhookModule,
     AimodelModule,
   ],
   controllers: [AppController, EmailController],
