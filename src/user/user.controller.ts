@@ -102,4 +102,11 @@ export class UserController {
   async getCurrentUser(@CurrentUser() user: any) {
     return user;
   }
+
+  // id로 유저 찾기
+  @Get('/:id')
+  async getUserByIdForIssue(@Param('id') id: string) {
+    console.log('getUserByIdForIssue: ', id);
+    return await this.userService.getUserByIdForIssue(id);
+  }
 }

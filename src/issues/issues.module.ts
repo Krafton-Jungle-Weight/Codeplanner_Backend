@@ -9,6 +9,7 @@ import { EmailModule } from 'src/email/email.module';
 import { ProjectModule } from 'src/project/project.module';
 import { GithubModule } from 'src/github/github.module';
 import { ProjectService } from 'src/project/project.service';
+import { NotificationModule } from 'src/notification/notification.moduel';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { ProjectService } from 'src/project/project.service';
     EmailModule,
     ProjectModule,
     GithubModule,
-
+    NotificationModule,
   ],
   controllers: [IssuesController],
   providers: [IssuesService, JwtAuthGuard,],
