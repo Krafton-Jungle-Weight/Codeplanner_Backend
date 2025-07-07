@@ -375,13 +375,13 @@ export class GithubService {
         role: membership.role,
         state: membership.state
       }));
-      
+
       console.log(`[GitHub Service] 추출된 조직 목록:`, organizations.map(org => ({
         login: org.login,
         role: org.role,
         state: org.state
       })));
-      
+
       // 각 조직의 저장소 생성 권한을 확인
       const organizationsWithPermissions = await Promise.all(
         organizations.map(async (org) => {
