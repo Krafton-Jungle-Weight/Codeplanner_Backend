@@ -8,6 +8,7 @@ import { User } from 'src/user/user.entity';
 import { EmailVerificationToken } from 'src/email/email.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GithubToken } from 'src/github/github.entity';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { GithubToken } from 'src/github/github.entity';
     TypeOrmModule.forFeature([User, EmailVerificationToken, GithubToken]),
   ],
   controllers: [AuthController],
-  providers: [EmailService, AuthService, UserService],
+  providers: [EmailService, AuthService, UserService, EmailService],
   exports: [JwtModule],
 })
 export class AuthModule {}
