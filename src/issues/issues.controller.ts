@@ -17,8 +17,13 @@ export class IssuesController {
     return this.issuesService.getIssues(projectId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch('/:projectId/issues/updateOrder')
-  async updateIssueOrderAndStatus(@Body() dto: ReorderIssuesDto) {
+  async updateIssueOrderAndStatus(
+    @Param('projectId') projectId: string,
+    @Body() dto: ReorderIssuesDto,
+    @CurrentUser() user: User,
+  ) {
     // console.log('=== 컨트롤러에서 요청 받음 ===');
     // console.log('전체 DTO:', dto);
     // console.log('DTO 타입:', typeof dto);
@@ -28,6 +33,8 @@ export class IssuesController {
     await this.issuesService.updateIssueOrderAndStatus(
       dto.issueIds,
       dto.targetColumnId,
+      projectId,
+      user.id,
     );
     return { success: 'Issue order and status updated successfully' };
   }
@@ -75,27 +82,33 @@ export class IssuesController {
     return this.issuesService.findIssueById(issueId, projectId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch('/:projectId/:issueId')
   updateIssueInfo(
     @Body() IssueInfoDto: UpdateIssueDto,
     @Param('projectId') projectId: string,
     @Param('issueId') issueId: string,
+    @CurrentUser() user: User,
   ): Promise<Issue> {
-    return this.issuesService.updateIssueInfo(IssueInfoDto, projectId, issueId);
+    return this.issuesService.updateIssueInfo(IssueInfoDto, projectId, issueId, user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete('/:projectId/issues/:issueId')
   deleteIssue(
     @Param('issueId') issueId: string,
     @Param('projectId') projectId: string,
+    @CurrentUser() user: User,
   ) {
-    return this.issuesService.deleteIssue(issueId, projectId);
+    return this.issuesService.deleteIssue(issueId, projectId, user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('/issues/:id/update-dates')
   async updateIssueDates(
     @Param('id') id: string,
-    @Body() body: { startDate: string, dueDate: string, projectId: string }
+    @Body() body: { startDate: string, dueDate: string, projectId: string },
+    @CurrentUser() user: User,
   ) {
     return this.issuesService.updateIssueInfo(
       { 
@@ -103,20 +116,23 @@ export class IssuesController {
         dueDate: body.dueDate ? new Date(body.dueDate) : undefined 
       },
       body.projectId,
-      id
+      id,
+      user.id
     );
   }
 
 
 
   // 이슈 업데이트 (issue detail)
+  @UseGuards(JwtAuthGuard)
   @Patch('/issues/:projectId/:issueId')
   async updateIssue(
     @Param('issueId') issueId: string,
     @Param('projectId') projectId: string,
     @Body() dto: UpdateIssueDto,
+    @CurrentUser() user: User,
   ) {
-    return this.issuesService.updateIssueInfo(dto, projectId, issueId);
+    return this.issuesService.updateIssueInfo(dto, projectId, issueId, user.id);
   }
   
 }

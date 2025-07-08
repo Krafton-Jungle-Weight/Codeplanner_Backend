@@ -10,6 +10,7 @@ import { User } from 'src/user/user.entity';
 import { ProjectService } from 'src/project/project.service';
 import { GithubService } from 'src/github/github.service';
 import { NotificationService } from 'src/notification/notification.service';
+import { ActivityService } from 'src/activity/activity.service';
 
 
 @Injectable()
@@ -30,6 +31,9 @@ export class IssuesService {
 
     @Inject(NotificationService)
     private readonly notificationService: NotificationService,
+
+    @Inject(ActivityService)
+    private readonly activityService: ActivityService,
 
   ) {}
 
@@ -105,23 +109,78 @@ export class IssuesService {
     dto: UpdateIssueDto,
     projectId: string,
     issueId: string,
+    userId?: string, // Activity 로깅을 위해 userId 추가
   ): Promise<Issue> {
-    const issue = await this.findIssueById(issueId, projectId);
+    const originalIssue = await this.findIssueById(issueId, projectId);
+    const changes: any[] = [];
 
-    if (dto.title !== undefined) issue.title = dto.title;
-    if (dto.description !== undefined) issue.description = dto.description;
-    if (dto.issueType !== undefined) issue.issueType = dto.issueType;
-    if (dto.status !== undefined) issue.status = dto.status;
-    if (dto.assigneeId !== undefined) issue.assigneeId = dto.assigneeId;
-    if (dto.reporterId !== undefined) issue.reporterId = dto.reporterId;
+    // 변경사항 추적
+    if (dto.title !== undefined && dto.title !== originalIssue.title) {
+      changes.push({ field: 'title', oldValue: originalIssue.title, newValue: dto.title });
+      originalIssue.title = dto.title;
+    }
+    if (dto.description !== undefined && dto.description !== originalIssue.description) {
+      changes.push({ field: 'description', oldValue: originalIssue.description, newValue: dto.description });
+      originalIssue.description = dto.description;
+    }
+    if (dto.issueType !== undefined && dto.issueType !== originalIssue.issueType) {
+      changes.push({ field: 'issueType', oldValue: originalIssue.issueType, newValue: dto.issueType });
+      originalIssue.issueType = dto.issueType;
+    }
+    if (dto.status !== undefined && dto.status !== originalIssue.status) {
+      changes.push({ field: 'status', oldValue: originalIssue.status, newValue: dto.status });
+      originalIssue.status = dto.status;
+    }
+
+    if (dto.assigneeId !== undefined) {
+      const cleanAssigneeId = this.cleanUuid(dto.assigneeId || undefined) || null;
+      if (cleanAssigneeId !== originalIssue.assigneeId) {
+        changes.push({ field: 'assigneeId', oldValue: originalIssue.assigneeId, newValue: cleanAssigneeId });
+        originalIssue.assigneeId = cleanAssigneeId;
+      }
+    }
+    if (dto.reporterId !== undefined) {
+      const cleanReporterId = this.cleanUuid(dto.reporterId || undefined) || null;
+      if (cleanReporterId !== originalIssue.reporterId) {
+        changes.push({ field: 'reporterId', oldValue: originalIssue.reporterId, newValue: cleanReporterId });
+        originalIssue.reporterId = cleanReporterId;
+      }
+    }
     if (dto.startDate !== undefined) {
-      issue.startDate = dto.startDate ? new Date(dto.startDate) : null;
+      const newStartDate = dto.startDate ? new Date(dto.startDate) : null;
+      if (newStartDate !== originalIssue.startDate) {
+        changes.push({ field: 'startDate', oldValue: originalIssue.startDate, newValue: newStartDate });
+        originalIssue.startDate = newStartDate;
+      }
     }
     if (dto.dueDate !== undefined) {
-      issue.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+      const newDueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+      if (newDueDate !== originalIssue.dueDate) {
+        changes.push({ field: 'dueDate', oldValue: originalIssue.dueDate, newValue: newDueDate });
+        originalIssue.dueDate = newDueDate;
+      }
     }
 
-    return await this.issueRepository.save(issue);
+    const updatedIssue = await this.issueRepository.save(originalIssue);
+
+    // Activity 로깅 (변경사항이 있을 때만)
+    if (changes.length > 0 && userId) {
+      try {
+        await this.activityService.createActivity({
+          projectId,
+          issueId,
+          userId,
+          actionType: 'issue_updated',
+          issueTitle: updatedIssue.title,
+          details: { changes },
+        });
+      } catch (error) {
+        console.error('Activity 로깅 실패:', error);
+        // Activity 로깅 실패해도 기존 로직에는 영향 없음
+      }
+    }
+
+    return updatedIssue;
   }
 
   async getIssuesCurrentUser(
@@ -149,7 +208,19 @@ export class IssuesService {
   async updateIssueOrderAndStatus(
     issueIds: string[],
     targetColumnId: string,
+    projectId?: string,
+    userId?: string,
   ): Promise<void> {
+    // Activity 로깅을 위해 변경 전 이슈들의 상태 조회
+    let originalIssues: Issue[] = [];
+    if (userId && projectId) {
+      try {
+        originalIssues = await this.issueRepository.findByIds(issueIds);
+      } catch (error) {
+        console.error('Activity 로깅을 위한 이슈 조회 실패:', error);
+      }
+    }
+
     const sql = `
       UPDATE issue AS i
       SET
@@ -159,6 +230,38 @@ export class IssuesService {
       WHERE i.id = u.id;
     `;
     await this.issueRepository.query(sql, [issueIds, targetColumnId]);
+
+    // Activity 로깅 추가 (상태가 실제로 변경된 이슈들만, 중복 방지를 위해 하나만)
+    if (userId && projectId && originalIssues.length > 0) {
+      try {
+        // 상태가 변경된 이슈들 찾기
+        const changedIssues = originalIssues.filter(issue => issue.status !== targetColumnId);
+        
+        // 실제로 상태가 변경된 이슈가 있는 경우만 로깅 (보통 드래그앤드롭은 1개 이슈)
+        if (changedIssues.length > 0) {
+          // 첫 번째 변경된 이슈만 로깅 (드래그앤드롭은 보통 하나의 이슈만 이동)
+          const movedIssue = changedIssues[0];
+          await this.activityService.createActivity({
+            projectId,
+            issueId: movedIssue.id,
+            userId,
+            actionType: 'issue_updated',
+            issueTitle: movedIssue.title,
+            details: {
+              changes: [{
+                field: 'status',
+                oldValue: movedIssue.status,
+                newValue: targetColumnId,
+                action: 'drag_and_drop'
+              }]
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Activity 로깅 실패:', error);
+        // Activity 로깅 실패해도 기존 로직에는 영향 없음
+      }
+    }
   }
 
   
@@ -233,6 +336,25 @@ export class IssuesService {
     });
     {/* 이슈 생성시 알림 생성 여기까지 */}
 
+    // Activity 로깅 추가
+    try {
+      await this.activityService.createActivity({
+        projectId,
+        issueId: result[0]?.id,
+        userId: user.id,
+        actionType: 'issue_created',
+        issueTitle: dto.title,
+        details: {
+          issueType: dto.issueType,
+          status: dto.status,
+          assigneeId: cleanAssigneeId,
+          reporterId: cleanReporterId,
+        },
+      });
+    } catch (error) {
+      console.error('Activity 로깅 실패:', error);
+      // Activity 로깅 실패해도 기존 로직에는 영향 없음
+    }
 
     const response = { 
       success: 'Issue created successfully',
@@ -316,8 +438,36 @@ export class IssuesService {
 
   }
 
-  async deleteIssue(issueId: string, projectId: string): Promise<void> {
+  async deleteIssue(issueId: string, projectId: string, userId?: string): Promise<void> {
+    // Activity 로깅을 위해 삭제 전에 이슈 정보 가져오기
+    let issueTitle = '';
+    if (userId) {
+      try {
+        const issue = await this.findIssueById(issueId, projectId);
+        issueTitle = issue.title;
+      } catch (error) {
+        console.error('삭제할 이슈 정보 조회 실패:', error);
+      }
+    }
+
     await this.issueRepository.delete({ id: issueId, projectId });
+
+    // Activity 로깅 추가
+    if (userId && issueTitle) {
+      try {
+        await this.activityService.createActivity({
+          projectId,
+          issueId,
+          userId,
+          actionType: 'issue_deleted',
+          issueTitle,
+          details: { deletedAt: new Date().toISOString() },
+        });
+      } catch (error) {
+        console.error('Activity 로깅 실패:', error);
+        // Activity 로깅 실패해도 기존 로직에는 영향 없음
+      }
+    }
   }
 
   async updateDates(id: string, startDate: string, dueDate: string) {
