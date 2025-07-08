@@ -107,5 +107,16 @@ export class IssuesController {
     );
   }
 
+
+
+  // 이슈 업데이트 (issue detail)
+  @Patch('/issues/:projectId/:issueId')
+  async updateIssue(
+    @Param('issueId') issueId: string,
+    @Param('projectId') projectId: string,
+    @Body() dto: UpdateIssueDto,
+  ) {
+    return this.issuesService.updateIssueInfo(dto, projectId, issueId);
+  }
   
 }

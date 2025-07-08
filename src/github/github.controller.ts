@@ -310,9 +310,30 @@ export class GithubController {
     const userId = user?.id;
     
     try {
-      console.log(`[GitHub Controller] 사용자 조직 목록 조회: ${userId}`);
+      console.log(`[GitHub Controller] 사용자 조직 목록 조회 시작: ${userId}`);
+      
+      // 토큰 존재 여부 먼저 확인
+      const tokenEntity = await this.githubTokenRepository.findOne({
+        where: { user_id: userId, provider: 'github' },
+      });
+
+      if (!tokenEntity) {
+        console.error(`[GitHub Controller] GitHub 토큰이 없음: ${userId}`);
+        throw new Error('GitHub 토큰이 없습니다. GitHub OAuth 인증을 먼저 완료해주세요.');
+      }
+
+      console.log(`[GitHub Controller] GitHub 토큰 확인됨: ${tokenEntity.access_token.substring(0, 10)}...`);
       
       const organizations = await this.githubService.getUserOrganizations(userId);
+      
+      console.log(`[GitHub Controller] 조직 목록 조회 성공: ${organizations.length}개 조직`);
+      console.log(`[GitHub Controller] 조직 목록:`, organizations.map(org => ({
+        login: org.login,
+        canCreateRepo: org.canCreateRepo,
+        role: org.role,
+        state: org.state,
+        permissionError: org.permissionError
+      })));
       
       return {
         success: true,
@@ -331,6 +352,11 @@ export class GithubController {
       };
     } catch (error) {
       console.error(`[GitHub Controller] 조직 목록 조회 실패:`, error);
+      console.error(`[GitHub Controller] 오류 상세:`, {
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data
+      });
       throw new Error(`조직 목록 조회 실패: ${error.message}`);
     }
   }
@@ -371,12 +397,8 @@ export class GithubController {
       };
     }
   }
-      owner: string; 
-      repo: string; 
-      issueTitle: string; 
-      baseBranch?: 'main' | 'master'
 
-@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('repos/:owner/:repo/commit/:sha/files')
   async getCommitChangedFiles(
     @Param('owner') owner: string,

@@ -130,11 +130,13 @@ export class UserService {
     if (emailVerificationToken.expires_at < new Date()) {
       throw new BadRequestException('이메일 인증 토큰이 만료되었습니다.');
     }
-    await this.userRepository.update({ email: email }, { is_verified: true });
-    await this.emailVerificationTokenRepository.delete({
+    console.log('삭제 시도:', { email: email, verification_code: verifyToken });
+    const result = await this.emailVerificationTokenRepository.delete({
       email: email,
       verification_code: verifyToken,
     });
+    console.log('Delete result:', result);
+    await this.userRepository.update({ email: email }, { is_verified: true });
     return;
   }
 
@@ -172,5 +174,23 @@ export class UserService {
       select: ['id', 'email', 'display_name'],
     });
   }
+
+  // id로 유저 찾기
+  async getUserByIdForIssue(id: string) {
+    const user = await this.userRepository.findOneBy({ id: id });
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다.');
+    }
+    return { id: user.id, displayName: user.display_name };
+  }
+
+
+
+
+
+
+
+
+  
 }
 
