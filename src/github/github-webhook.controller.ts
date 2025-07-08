@@ -15,10 +15,10 @@ export class GithubWebhookController {
     @Body() body: any, 
     @Headers() headers: any
   ) {
-      // console.log('----------------------');
-      // console.log('headers', headers);
-      // console.log('webhook', body);
-      // console.log('----------------------');
+      console.log('----------------------');
+      console.log('headers', headers);
+      console.log('webhook', body);
+      console.log('----------------------');
       const type = headers['x-github-event'];
       if (type == 'pull_request') {
         return this.handlePullRequestEvent(body);
@@ -101,10 +101,59 @@ export class GithubWebhookController {
         console.log('추출된 커밋 정보:', commitInfo);
 
         try {
+          // 코드 분석: 커밋에 포함된 파일을 분석 (예시로 changedFiles.added + modified만 분석)
+          const filesToAnalyze = [
+            ...(commit.added || []),
+            ...(commit.modified || [])
+          ];
+          // 실제 파일 내용을 가져오는 로직이 필요할 수 있음. 여기선 파일명만 예시로 사용
+          const analysisInputs = filesToAnalyze
+            .map(filename => {
+              if (filename.endsWith('.c')) {
+                return { filename, content: '', language: 'c' as 'c' };
+              } else if (filename.endsWith('.cpp')) {
+                return { filename, content: '', language: 'cpp' as 'cpp' };
+              } else {
+                return null;
+              }
+            })
+            .filter((f): f is { filename: string; content: string; language: 'c' | 'cpp' } => f !== null);
+
+          let analysisResults: { file: string; result: boolean; error?: string; cppcheck: any; clangTidy: any }[] = [];
+          let analysisSuccess = true;
+          let analysisErrorMsg = '';
+          if (analysisInputs.length > 0) {
+            const rawResults = await this.analysisService.analyzeFiles(analysisInputs);
+            analysisResults = rawResults.map(r => {
+              const cppcheckSuccess = r.cppcheck.success;
+              const clangTidySuccess = r.clangTidy.success;
+              const result = cppcheckSuccess && clangTidySuccess;
+              let error = '';
+              if (!cppcheckSuccess) error += `[cppcheck] ${r.cppcheck.output}\n`;
+              if (!clangTidySuccess) error += `[clang-tidy] ${r.clangTidy.output}`;
+              return {
+                file: r.file,
+                result,
+                error: error || undefined,
+                cppcheck: r.cppcheck,
+                clangTidy: r.clangTidy,
+              };
+            });
+            analysisSuccess = analysisResults.every(r => r.result === true);
+            if (!analysisSuccess) {
+              analysisErrorMsg = analysisResults.filter(r => r.result === false).map(r => r.error).join('\n');
+            }
+          }
+
           // 서비스로 커밋 정보 전달하고 결과 수집
           const result = await this.githubWebhookService.processCommit(commitInfo);
           results.push({
             commitHash: commit.id,
+            analysis: {
+              success: analysisSuccess,
+              results: analysisResults,
+              error: analysisErrorMsg || undefined,
+            },
             ...result,
           });
         } catch (error) {

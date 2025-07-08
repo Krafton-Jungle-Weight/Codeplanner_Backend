@@ -1,29 +1,32 @@
 import { execa } from 'execa';
 import { BaseScanner, ScannerConfig, ScannerResult } from './base.scanner';
+import { execSync } from 'child_process';
 
-/*
- *  BaseScanner의 구현 클래스(ClangTidy)
- */
 export class ClangTidyScanner extends BaseScanner {
   constructor(config: ScannerConfig) {
     super(config);
   }
-  
-  /*
-   *  BaseScanner의 구현 클래스
-   *  cppcheck  "실행 파일" -- c 명령어 cli
-   */ 
+
   async execute(): Promise<ScannerResult> {
     try {
-      const { stdout, stderr } = await execa('clang-tidy', [
+      const sdkPath = execSync('xcrun --show-sdk-path').toString().trim();
+      const result = await execa('clang-tidy', [
         this.config.filePath,
         '--',
         this.config.language === 'cpp' ? '-std=c++17' : '-std=c11',
+        '-isysroot', sdkPath,
+        '-I', `${sdkPath}/usr/include`,
+        '-I', '/usr/include',
       ]);
+
+      const output = result.stdout + (result.stderr ? '\n' + result.stderr : '');
+
+      const hasIssues = /(?:error|warning|note):/.test(output);
+
       return {
         tool: 'clang-tidy',
-        success: true,
-        output: stdout + (stderr ? '\n' + stderr : ''),
+        success: !hasIssues && result.exitCode === 0,
+        output,
       };
     } catch (err: any) {
       return {
@@ -33,4 +36,4 @@ export class ClangTidyScanner extends BaseScanner {
       };
     }
   }
-} 
+}
