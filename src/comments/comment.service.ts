@@ -1,7 +1,7 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { Comment } from "./comment.entity";
-import { CreateCommentDto } from "./comment.dto";
+import { CreateCommentDto, UpdateCommentDto } from "./comment.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "src/user/user.entity";
 
@@ -27,6 +27,32 @@ export class CommentService {
     return this.commentRepository.find({
       where: { issue: { id: issueId } },
     });
+  }
+
+  async deleteComment(projectId: string, issueId: string, commentId: string, user: User) {
+    const comment = await this.commentRepository.findOne({
+      where: { id: commentId, issue: { id: issueId }, author: { id: user.id } },
+    });
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+    return this.commentRepository.remove(comment);
+  }
+
+  async updateComment(projectId: string, issueId: string, commentId: string, dto: UpdateCommentDto, user: User) {
+    const comment = await this.commentRepository.findOne({
+      where: { id: commentId, issue: { id: issueId }, author: { id: user.id } },
+    });
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+    if (dto.content) {
+      comment.content = dto.content;
+    }
+    if (dto.updatedAt) {
+      comment.updatedAt = dto.updatedAt;
+    }
+    return this.commentRepository.save(comment);
   }
 }
 

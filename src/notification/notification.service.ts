@@ -29,7 +29,7 @@ export class NotificationService {
     const notifications = await this.notificationRepository.find({
       where: { userId: userId },
       order: { createdAt: 'DESC' },
-      take: 3,
+      take: 5,
     });
     // payload만 추출해서 반환
     return notifications.map(n => ({
