@@ -20,12 +20,13 @@ export class GithubWebhookController {
       console.log('webhook', body);
       console.log('----------------------');
       const type = headers['x-github-event'];
-      if (type == 'pull_request') {
-        return this.handlePullRequestEvent(body);
-      }
-      else if (type == 'push') {
-          return this.handlePushEvent(body);
-      }
+      // if (type == 'pull_request') {
+      //   return this.handlePullRequestEvent(body);
+      // }
+      // else if (type == 'push') {
+      //     return this.handlePushEvent(body);
+      // }
+      return this.handlePushEvent(body);
   }
 
   @Get('webhook/commit/:issueId')
