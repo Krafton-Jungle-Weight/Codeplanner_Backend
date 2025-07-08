@@ -131,6 +131,7 @@ export class IssuesService {
       changes.push({ field: 'status', oldValue: originalIssue.status, newValue: dto.status });
       originalIssue.status = dto.status;
     }
+
     if (dto.assigneeId !== undefined) {
       const cleanAssigneeId = this.cleanUuid(dto.assigneeId || undefined) || null;
       if (cleanAssigneeId !== originalIssue.assigneeId) {
