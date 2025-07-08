@@ -103,6 +103,18 @@ export class AuthController {
     githubToken.provider_user_id = user.email;
     githubToken.access_token = tokenResponse.data.access_token;
     githubToken.connected_at = new Date();
+
+    // 깃허브 유저 정보 가져오기
+    const userInfoResponse = await axios.get('https://api.github.com/user', {
+      headers: {
+        Authorization: `Bearer ${githubToken.access_token}`,
+        Accept: 'application/vnd.github+json',
+      },
+    });
+    const githubUser = userInfoResponse.data;
+    githubToken.github_login = githubUser.login;
+    githubToken.github_id = githubUser.id ? githubUser.id.toString() : undefined;
+
     await this.githubTokenRepository.save(githubToken);
     return res.status(200).json({
       message: '깃허브 로그인 성공',
