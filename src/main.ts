@@ -12,6 +12,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+
   // 모든 라우트에 /api 프리픽스 적용
   // app.setGlobalPrefix('api');
 
