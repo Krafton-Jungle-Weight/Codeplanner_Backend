@@ -14,7 +14,6 @@ async function bootstrap() {
 
   // CORS 설정 - ecosystem.config.js의 CORS_ORIGIN 환경변수 사용
   const corsOrigin = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'];
-  
   app.enableCors({
     origin: corsOrigin,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
