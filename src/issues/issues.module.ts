@@ -10,6 +10,7 @@ import { ProjectModule } from 'src/project/project.module';
 import { GithubModule } from 'src/github/github.module';
 import { ProjectService } from 'src/project/project.service';
 import { NotificationModule } from 'src/notification/notification.moduel';
+import { ActivityModule } from 'src/activity/activity.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { NotificationModule } from 'src/notification/notification.moduel';
     ProjectModule,
     GithubModule,
     NotificationModule,
+    ActivityModule,
   ],
   controllers: [IssuesController],
   providers: [IssuesService, JwtAuthGuard,],
