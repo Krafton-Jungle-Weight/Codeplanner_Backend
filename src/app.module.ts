@@ -18,6 +18,7 @@ import { WebhookModule } from './analysis/webhook/webhook.module';
 import { AimodelModule } from './aimodel/aimodel.module';
 import { NotificationModule } from './notification/notification.moduel';
 import { CommentModule } from './comments/comment.module';
+import { ActivityModule } from './activity/activity.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { CommentModule } from './comments/comment.module';
     AimodelModule,
     NotificationModule,
     CommentModule,
+    ActivityModule,
   ],
   controllers: [AppController, EmailController],
 
