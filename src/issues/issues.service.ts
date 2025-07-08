@@ -9,6 +9,7 @@ import { EmailService } from 'src/email/email.service';
 import { User } from 'src/user/user.entity';
 import { ProjectService } from 'src/project/project.service';
 import { GithubService } from 'src/github/github.service';
+import { NotificationService } from 'src/notification/notification.service';
 
 
 @Injectable()
@@ -26,6 +27,9 @@ export class IssuesService {
 
     @Inject(GithubService)
     private readonly githubService: GithubService,
+
+    @Inject(NotificationService)
+    private readonly notificationService: NotificationService,
 
   ) {}
 
@@ -170,11 +174,14 @@ export class IssuesService {
         projectId,
       );
     }
+
+    // 알림 기능을 위해 쿼리문 마지막에 'RETURNING id;' 추가
     const sql = `
       INSERT INTO issue (project_id, title, description, issue_type, status, assignee_id, reporter_id, start_date, due_date, position, tag)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING id;
     `;
-    await this.issueRepository.query(sql, [
+    const result = await this.issueRepository.query(sql, [
       projectId,
       dto.title,
       dto.description,
@@ -205,6 +212,27 @@ export class IssuesService {
         branchError = '브랜치 생성 중 예상치 못한 오류가 발생했습니다.';
       }
     }
+
+  
+    {/* 이슈 생성시 알림 생성 */ }
+    const projectName = await this.projectService.getProjectName(projectId);
+
+    await this.notificationService.createNotification(user.id, 'issue_created', {
+      issueId: result[0]?.id,
+      issueTitle: dto.title,
+      projectName: projectName,
+      projectId: projectId,
+      createdAt: new Date().toISOString(),
+    });
+
+    console.log('notification payload', {
+      issueId: result,
+      issueTitle: dto.title,
+      projectName: projectName,
+      projectId: projectId,
+    });
+    {/* 이슈 생성시 알림 생성 여기까지 */}
+
 
     const response = { 
       success: 'Issue created successfully',
@@ -300,4 +328,9 @@ export class IssuesService {
     await this.issueRepository.save(issue);
     return issue;
   }
+
+
+  
+
+  
 }
