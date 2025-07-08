@@ -14,3 +14,8 @@ export class CommentResponseDto {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export class UpdateCommentDto {
+  content: string;
+  updatedAt: Date;
+}
