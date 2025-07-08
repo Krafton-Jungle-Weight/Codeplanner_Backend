@@ -10,11 +10,18 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'development',
+        PORT: 5000,
+        CORS_ORIGIN: 'http://localhost:3000',
       },
       env_production: {
         NODE_ENV: 'production',
         PORT: 5000,
-        CORS_ORIGIN: 'https://code-planner.com,https://code-planner.com:3000,https://code-planner.com:5000',
+        CORS_ORIGIN: 'https://code-planner.com,https://www.code-planner.com',
+        // 추가 환경변수들
+        DATABASE_URL: process.env.DATABASE_URL,
+        JWT_SECRET: process.env.JWT_SECRET,
+        GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
+        GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
       },
     },
   ],
