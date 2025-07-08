@@ -400,7 +400,7 @@ export class GithubController {
 
   @UseGuards(JwtAuthGuard)
   @Get('repos/:owner/:repo/commit/:sha/files')
-  async getPullRequestCommitFiles(
+  async getCommitChangedFiles(
     @Param('owner') owner: string,
     @Param('repo') repo: string,
     @Param('sha') sha: string,

@@ -1,10 +1,7 @@
 import { execa } from 'execa';
 import { BaseScanner, ScannerConfig, ScannerResult } from './base.scanner';
+import { execSync } from 'child_process';
 
-/*
- *
- *
- */
 export class CppcheckScanner extends BaseScanner {
   constructor(config: ScannerConfig) {
     super(config);
@@ -12,21 +9,45 @@ export class CppcheckScanner extends BaseScanner {
 
   async execute(): Promise<ScannerResult> {
     try {
-      const { stdout, stderr } = await execa('cppcheck', [
+      const sdkPath = execSync('xcrun --show-sdk-path').toString().trim();
+      const result = await execa('cppcheck', [
         '--enable=all',
+        '--inconclusive',
+        '--std=c++17',
+        '--suppress=missingIncludeSystem',
+        '--suppress=noExplicitConstructor',
         this.config.filePath,
+        '-I', `${sdkPath}/usr/include`,
+        '-I', '/usr/include',
       ]);
+
+      const output = result.stdout + (result.stderr ? '\n' + result.stderr : '');
+
+      // 중요 심각도만 포함되었는지 검사
+      const hasImportantIssues = /(?:error|warning|performance|portability|style):/.test(output);
+      /*
+        * 포함되는 cppcheck 메시지 종류:
+        *
+        *  error:        치명적인 오류 (예: 문법 오류, 정의되지 않은 식별자 등)
+        *  warning:      잠재적 오류 또는 잘못된 논리 (예: 널 포인터 역참조 가능성)
+        *  performance:  성능 저하 가능성 (예: 불필요한 연산, 비효율적 반복 등)
+        *  portability:  이식성 문제 (예: 플랫폼/컴파일러 간 차이)
+        *  style:        스타일 권장 위반 (예: 미사용 변수, 명시성 부족 등)
+       */
+
+
       return {
         tool: 'cppcheck',
-        success: true,
-        output: stdout + (stderr ? '\n' + stderr : ''),
+        success: !hasImportantIssues && result.exitCode === 0,
+        output,
       };
     } catch (err: any) {
+      const output = err.stdout || err.stderr || err.message;
       return {
         tool: 'cppcheck',
         success: false,
-        output: err.stdout || err.stderr || err.message,
+        output,
       };
     }
   }
-} 
+}
