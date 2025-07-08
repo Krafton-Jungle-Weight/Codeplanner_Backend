@@ -10,7 +10,14 @@ export class ClangTidyScanner extends BaseScanner {
 
   async execute(): Promise<ScannerResult> {
     try {
-      const sdkPath = execSync('xcrun --show-sdk-path').toString().trim();
+      // os에 따른 분기 처리 (우분투에선 sdk를 가져올 필요가 없어짐)
+      const os = require('os');
+      const isMac = os.platform() === 'darwin';
+
+      const sdkPath = isMac
+      ? execSync('xcrun --show-sdk-path').toString().trim()
+      : '/usr/include'; // 리눅스 기본 경로
+      
       const result = await execa('clang-tidy', [
         this.config.filePath,
         '--',
