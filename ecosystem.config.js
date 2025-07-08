@@ -16,7 +16,7 @@ module.exports = {
       env_production: {
         NODE_ENV: 'production',
         PORT: 5000,
-        CORS_ORIGIN: 'https://code-planner.com,https://www.code-planner.com',
+        CORS_ORIGIN: 'https://code-planner.com,https://www.code-planner.com,http://3.39.195.132',
         // 추가 환경변수들
         DATABASE_URL: process.env.DATABASE_URL,
         JWT_SECRET: process.env.JWT_SECRET,
