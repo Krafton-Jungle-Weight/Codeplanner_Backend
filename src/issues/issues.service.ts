@@ -131,13 +131,20 @@ export class IssuesService {
       changes.push({ field: 'status', oldValue: originalIssue.status, newValue: dto.status });
       originalIssue.status = dto.status;
     }
-    if (dto.assigneeId !== undefined && dto.assigneeId !== originalIssue.assigneeId) {
-      changes.push({ field: 'assigneeId', oldValue: originalIssue.assigneeId, newValue: dto.assigneeId });
-      originalIssue.assigneeId = dto.assigneeId;
+
+    if (dto.assigneeId !== undefined) {
+      const cleanAssigneeId = this.cleanUuid(dto.assigneeId || undefined) || null;
+      if (cleanAssigneeId !== originalIssue.assigneeId) {
+        changes.push({ field: 'assigneeId', oldValue: originalIssue.assigneeId, newValue: cleanAssigneeId });
+        originalIssue.assigneeId = cleanAssigneeId;
+      }
     }
-    if (dto.reporterId !== undefined && dto.reporterId !== originalIssue.reporterId) {
-      changes.push({ field: 'reporterId', oldValue: originalIssue.reporterId, newValue: dto.reporterId });
-      originalIssue.reporterId = dto.reporterId;
+    if (dto.reporterId !== undefined) {
+      const cleanReporterId = this.cleanUuid(dto.reporterId || undefined) || null;
+      if (cleanReporterId !== originalIssue.reporterId) {
+        changes.push({ field: 'reporterId', oldValue: originalIssue.reporterId, newValue: cleanReporterId });
+        originalIssue.reporterId = cleanReporterId;
+      }
     }
     if (dto.startDate !== undefined) {
       const newStartDate = dto.startDate ? new Date(dto.startDate) : null;
