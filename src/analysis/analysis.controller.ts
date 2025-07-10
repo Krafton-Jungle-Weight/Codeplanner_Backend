@@ -64,10 +64,37 @@ export class AnalysisController {
     @Param('prNumber') prNumber: string,
     @CurrentUser() user: any,
   ) {
+    const pullNumber = parseInt(prNumber, 10);
+    if (isNaN(pullNumber)) {
+      throw new Error('올바른 PR 번호를 입력해주세요.');
+    }
     return await this.analysisService.analyzeGitHubPullRequest(
       owner,
       repo,
-      parseInt(prNumber, 10),
+      pullNumber,
+      user.id,
+    );
+  }
+
+  /**
+   * GitHub PR의 최근 변경사항만 분석 (중복 제거)
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('github/pr/:owner/:repo/:prNumber/recent')
+  async analyzeGitHubPullRequestRecent(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('prNumber') prNumber: string,
+    @CurrentUser() user: any,
+  ) {
+    const pullNumber = parseInt(prNumber, 10);
+    if (isNaN(pullNumber)) {
+      throw new Error('올바른 PR 번호를 입력해주세요.');
+    }
+    return await this.analysisService.analyzeGitHubPullRequestRecent(
+      owner,
+      repo,
+      pullNumber,
       user.id,
     );
   }

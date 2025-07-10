@@ -147,6 +147,39 @@ export class AnalysisService {
     return result;
   }
 
+  // GitHub PR의 최근 변경사항만 분석 (중복 제거)
+  async analyzeGitHubPullRequestRecent(
+    owner: string,
+    repo: string,
+    pullNumber: number,
+    userId: string,
+  ): Promise<AnalyzeResponse[]> {
+    // GitHub에서 PR의 최근 변경된 파일들을 가져옴 (중복 제거)
+    const changedFiles = await this.githubService.getRecentChangedFilesInPullRequest(
+      owner,
+      repo,
+      pullNumber,
+      userId,
+    );
+
+    // C/C++ 파일만 필터링
+    const cppFiles = changedFiles.filter(
+      (file) => file.language === 'c' || file.language === 'cpp',
+    );
+
+    // AnalyzeRequest 형식으로 변환
+    const analyzeRequests: AnalyzeRequest[] = changedFiles
+      .filter((file) => file.language === 'c' || file.language === 'cpp')
+      .map((file) => ({
+        filename: file.filename,
+        content: file.content,
+        language: file.language as 'c' | 'cpp',
+      }));
+
+    const result = await this.analyzeFiles(analyzeRequests);
+    return result;
+  }
+
   async analysisGitHubChangedFile(
     owner: string,
     repo: string,
