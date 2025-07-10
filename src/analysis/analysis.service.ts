@@ -146,4 +146,33 @@ export class AnalysisService {
     const result = await this.analyzeFiles(analyzeRequests);
     return result;
   }
+
+  async analysisGitHubChangedFile(
+    owner: string,
+    repo: string,
+    sha: string,
+    file: string | undefined,
+    id: any
+  ) {
+    const changedFiles = await this.githubService.getChangedFilesWithContent(
+      owner, repo, sha, id,
+    );
+    // 1. C/C++ 파일만 필터
+    let cppFiles = changedFiles.filter(
+      (f) => f.language === 'c' || f.language === 'cpp'
+    );
+    // 2. file 파라미터가 있으면 해당 파일만 필터
+    if (file) {
+      cppFiles = cppFiles.filter(f => f.filename === file);
+    }
+    // 3. 분석 요청 생성
+    const analyzeRequests: AnalyzeRequest[] = cppFiles.map((f) => ({
+      filename: f.filename,
+      content: f.content,
+      language: f.language as 'c' | 'cpp',
+    }));
+  
+    const result = await this.analyzeFiles(analyzeRequests);
+    return result;
+  }
 }
