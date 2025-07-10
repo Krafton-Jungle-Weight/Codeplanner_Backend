@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CppcheckScanner } from './scanner/cppcheck.scanner';
 import { ClangTidyScanner } from './scanner/clang-tidy.scanner';
+import { ClangFormatScanner } from './scanner/clang-format.scanner';
 import { ScannerConfig, ScannerResult } from './scanner/base.scanner';
 import { AnalyzeRequest, AnalyzeResponse } from './dto/analyze-request.dto';
 import { GithubService } from '../github/github.service';
@@ -17,7 +18,7 @@ export class AnalysisService {
   async analyzeFiles(
     files: AnalyzeRequest[],
   ): Promise<
-    { file: string; cppcheck: ScannerResult; clangTidy: ScannerResult }[]
+    { file: string; cppcheck: ScannerResult; clangTidy: ScannerResult; clangFormat: ScannerResult }[]
   > {
     const fs = require('fs');
     const os = require('os');
@@ -47,18 +48,21 @@ export class AnalysisService {
 
         const cppcheck = new CppcheckScanner(config);
         const clangTidy = new ClangTidyScanner(config);
+        const clangFormat = new ClangFormatScanner(config);
         /*
          * 결과의 출력 순서를 보장하는 promise.all
-         * 두개의 실행은 계속 교차해서 발생
+         * 세 개의 실행은 계속 교차해서 발생
          */
-        const [cppcheckResult, clangTidyResult] = await Promise.all([
+        const [cppcheckResult, clangTidyResult, clangFormatResult] = await Promise.all([
           cppcheck.execute(),
           clangTidy.execute(),
+          clangFormat.execute(),
         ]);
         const response: AnalyzeResponse = {
           file: file.filename,
           cppcheck: cppcheckResult,
           clangTidy: clangTidyResult,
+          clangFormat: clangFormatResult,
         }
 
         results.push(response);
