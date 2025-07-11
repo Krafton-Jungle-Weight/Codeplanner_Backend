@@ -726,6 +726,7 @@ export class GithubService {
     repo: string,
     commitSha: string,
     userId: string,
+    since?: string, // 특정 시점 이후의 변경사항만 가져오기 위한 파라미터
   ) {
     const headers = await this.getHeaders(userId);
 
@@ -739,6 +740,18 @@ export class GithubService {
     if (!files || files.length === 0) {
       throw new Error('변경된 파일이 없습니다.');
     }
+
+    // since 파라미터가 있으면 해당 시점 이후의 변경사항만 필터링
+    let filteredFiles = files;
+    if (since) {
+      // 커밋 날짜가 since 이후인지 확인
+      const commitDate = new Date(commitRes.data.commit.author.date);
+      const sinceDate = new Date(since);
+      if (commitDate < sinceDate) {
+        throw new Error('지정된 시점 이후의 변경사항이 없습니다.');
+      }
+    }
+
     type ChangedFileWithContent = {
       filename: string;
       status: 'added' | 'modified' | 'removed'; // 깃허브 커밋 파일 상태
@@ -746,21 +759,21 @@ export class GithubService {
       content: string;
       error?: string; // 선택값으로 변경!
     };
+
     // 2. 각 파일의 내용 가져오기
-    // const results: { file: string; cppcheck: ScannerResult; clangTidy: ScannerResult }[] = [];
     const results: ChangedFileWithContent[] = [];
 
-    for (const file of files) {
+    for (const file of filteredFiles) {
       const filePath = file.filename;
 
       const contentUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/contents/${filePath}?ref=${commitSha}`;
-      try {
+      try { 
         const contentRes = await this.httpService
           .get(contentUrl, { headers })
           .toPromise();
         const encoded = contentRes?.data?.content;
         const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
-
+        
         results.push({
           filename: filePath,
           status: file.status, // added, modified, removed
@@ -867,5 +880,104 @@ export class GithubService {
     }
 
     return tokenEntity.user_id;
+  }
+
+  // PR 기준으로 최근 변경사항만 가져오기 (중복 제거)
+  async getRecentChangedFilesInPullRequest(
+    owner: string,
+    repo: string,
+    pullNumber: number,
+    userId: string,
+  ) {
+    const headers = await this.getHeaders(userId);
+
+    // 1. PR에 포함된 커밋들 가져오기 (시간순 정렬)
+    const commitsUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/pulls/${pullNumber}/commits`;
+    const commitsRes = await this.httpService.get(commitsUrl, { headers }).toPromise();
+    const commits = commitsRes?.data;
+
+    if (!commits || commits.length === 0) {
+      throw new Error('PR에 포함된 커밋이 없습니다.');
+    }
+
+    // 커밋을 시간순으로 정렬 (최신이 먼저)
+    const sortedCommits = commits.sort((a, b) => 
+      new Date(b.commit.author.date).getTime() - new Date(a.commit.author.date).getTime()
+    );
+
+    // 2. 각 커밋의 변경된 파일들을 수집 (최신 커밋 우선)
+    const fileMap = new Map<string, any>(); // filename -> file info
+
+    for (const commit of sortedCommits) {
+      const commitUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/commits/${commit.sha}`;
+      const commitRes = await this.httpService.get(commitUrl, { headers }).toPromise();
+      const files = commitRes?.data?.files;
+
+      if (!files) continue;
+
+      for (const file of files) {
+        // 이미 처리된 파일이면 건너뛰기 (최신 커밋이 이미 처리됨)
+        if (fileMap.has(file.filename)) {
+          continue;
+        }
+
+        // 최신 커밋의 파일 정보 저장
+        fileMap.set(file.filename, {
+          ...file,
+          commitSha: commit.sha,
+          commitMessage: commit.commit.message,
+          commitDate: commit.commit.author.date,
+        });
+      }
+    }
+
+    // 3. 파일 내용 가져오기 (최신 커밋의 내용)
+    const results: Array<{
+      filename: string;
+      status: 'added' | 'modified' | 'removed';
+      language: 'c' | 'cpp' | 'text' | 'unknown';
+      content: string;
+      error?: string;
+      commitSha: string;
+      commitMessage: string;
+      commitDate: string;
+    }> = [];
+
+    for (const [filename, fileInfo] of fileMap) {
+      const contentUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/contents/${filename}?ref=${fileInfo.commitSha}`;
+      try {
+        const contentRes = await this.httpService.get(contentUrl, { headers }).toPromise();
+        const encoded = contentRes?.data?.content;
+        const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+
+        results.push({
+          filename,
+          status: fileInfo.status,
+          language: filename.endsWith('.c')
+            ? 'c'
+            : filename.endsWith('.cpp')
+              ? 'cpp'
+              : 'text',
+          content: decoded,
+          commitSha: fileInfo.commitSha,
+          commitMessage: fileInfo.commitMessage,
+          commitDate: fileInfo.commitDate,
+        });
+      } catch (err) {
+        console.error(`파일 ${filename} 읽기 실패`, err.message);
+        results.push({
+          filename,
+          status: fileInfo.status,
+          language: 'unknown',
+          content: '',
+          error: err.message,
+          commitSha: fileInfo.commitSha,
+          commitMessage: fileInfo.commitMessage,
+          commitDate: fileInfo.commitDate,
+        });
+      }
+    }
+
+    return results;
   }
 }
