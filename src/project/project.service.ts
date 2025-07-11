@@ -1,15 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from './project.entity';
 import { User } from '../user/user.entity';
 import { ProjectMember } from './project-member.entity';
 import { DataSource } from 'typeorm';
+import { Label } from 'src/issues/label.entity';
+import { IssueLabel } from 'src/issues/issue_label.entity';
 
 // 프로젝트 서비스
 @Injectable()
 export class ProjectService {
-
   async getProjectSidebar(user: User): Promise<any[]> {
     const projects = await this.projectRepo
       .createQueryBuilder('project')
@@ -32,6 +37,10 @@ export class ProjectService {
     @InjectRepository(ProjectMember)
     private readonly projectMemberRepo: Repository<ProjectMember>,
     private readonly dataSource: DataSource,
+    @InjectRepository(Label)
+    private readonly labelRepo: Repository<Label>,
+    @InjectRepository(IssueLabel)
+    private readonly issueLabelRepo: Repository<IssueLabel>,
   ) {}
 
   // 프로젝트 전체 조회
@@ -315,7 +324,6 @@ export class ProjectService {
     return { message: '프로젝트가 삭제되었습니다.' };
   }
 
-
   async setProjectRepositoryUrl(projectId: string, repositoryUrl: string) {
     await this.projectRepo.update(projectId, { repository_url: repositoryUrl });
   }
@@ -325,14 +333,16 @@ export class ProjectService {
       where: { id: projectId },
     });
 
-    const tag : string = project?.tag + '-' + project?.tag_number;
+    const tag: string = project?.tag + '-' + project?.tag_number;
 
-    return {issue_tag: tag};
+    return { issue_tag: tag };
   }
 
   async updateProjectTagNumber(projectId: string) {
     // 프로젝트를 찾는다
-    const project = await this.projectRepo.findOne({ where: { id: projectId } });
+    const project = await this.projectRepo.findOne({
+      where: { id: projectId },
+    });
     if (!project) {
       throw new Error('프로젝트를 찾을 수 없습니다.');
     }
@@ -342,11 +352,38 @@ export class ProjectService {
     return { tag_number: project.tag_number };
   }
 
-
-
   // 프로젝트 이름 조회
   async getProjectName(projectId: string) {
-    const project = await this.projectRepo.findOne({ where: { id: projectId } });
+    const project = await this.projectRepo.findOne({
+      where: { id: projectId },
+    });
     return project?.title;
+  }
+
+  async createLabel(projectId: string, name: string, color: string) {
+    const label = this.labelRepo.create({ projectId, name, color });
+    await this.labelRepo.save(label);
+    return label;
+  }
+
+  async getLabels(projectId: string) {
+    const labels = await this.labelRepo.find({ where: { projectId } });
+    return labels;
+  }
+
+  async deleteLabel(projectId: string, labelId: string) {
+    // 연결된 이슈가 있는지 확인
+    const connectedIssues = await this.issueLabelRepo.count({
+      where: { labelId },
+    });
+
+    if (connectedIssues > 0) {
+      throw new BadRequestException(
+        `이 라벨은 ${connectedIssues}개의 이슈에 연결되어 있어 삭제할 수 없습니다. 먼저 이슈에서 라벨을 제거해주세요.`,
+      );
+    }
+
+    await this.labelRepo.delete(labelId);
+    return { message: '라벨이 삭제되었습니다.' };
   }
 }

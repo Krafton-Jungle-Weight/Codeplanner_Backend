@@ -5,6 +5,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 import { User } from 'src/user/user.entity';
 import { Project } from './project.entity';
+import { CreateLabelDto } from './dto/label.dto';
 
 // 프로젝트 컨트롤러
 @Controller('/projects')
@@ -196,5 +197,21 @@ export class ProjectController {
   @Get(':projectId/tag')
   async getProjectTag(@Param('projectId') projectId: string) {
     return this.projectService.getProjectTag(projectId);
+  }
+
+
+  @Post(':projectId/labels')
+  async createLabel(@Param('projectId') projectId: string, @Body() body: CreateLabelDto) {
+    return this.projectService.createLabel(projectId, body.name, body.color);
+  }
+
+  @Get(':projectId/labels')
+  async getLabels(@Param('projectId') projectId: string) {
+    return this.projectService.getLabels(projectId);
+  }
+
+  @Delete(':projectId/labels/:labelId')
+  async deleteLabel(@Param('projectId') projectId: string, @Param('labelId') labelId: string) {
+    return this.projectService.deleteLabel(projectId, labelId);
   }
 }
