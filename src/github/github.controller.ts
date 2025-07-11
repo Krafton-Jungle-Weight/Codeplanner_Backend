@@ -414,6 +414,30 @@ export class GithubController {
     );
   }
 
+  /**
+   * PR 기준으로 최근 변경된 파일들 가져오기 (중복 제거)
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('repos/:owner/:repo/pulls/:pullNumber/recent-files')
+  async getRecentChangedFilesInPullRequest(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('pullNumber') pullNumber: string,
+    @CurrentUser() user: any,
+  ) {
+    const pullNumberInt = parseInt(pullNumber, 10);
+    if (isNaN(pullNumberInt)) {
+      throw new Error('올바른 PR 번호를 입력해주세요.');
+    }
+    
+    return this.githubService.getRecentChangedFilesInPullRequest(
+      owner,
+      repo,
+      pullNumberInt,
+      user.id,
+    );
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('repos/:owner/:repo/pulls/:prNumber/files')
   async getFilesInPR(

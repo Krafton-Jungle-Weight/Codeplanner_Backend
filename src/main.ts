@@ -16,8 +16,8 @@ async function bootstrap() {
   // 모든 라우트에 /api 프리픽스 적용
   // app.setGlobalPrefix('api');
 
-  // Nginx에서 CORS를 처리하므로 백엔드에서는 비활성화
-  const corsOrigin = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'];
+  // .env에서 CORS_ORIGIN을 불러와서 배열로 변환
+  const corsOrigin = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'];  // 개발 환경시: http://localhost:3000, 배포 환경시: 배포 주소
   app.enableCors({
     origin: corsOrigin,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
