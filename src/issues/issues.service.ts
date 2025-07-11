@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Issue } from './issues.entity';
+import { IssueLabel } from './issue_label.entity';
 import { createQueryBuilder, Repository } from 'typeorm';
 import { UpdateIssueDto } from './dto/issue-info.dto';
 
@@ -12,13 +13,14 @@ import { GithubService } from 'src/github/github.service';
 import { NotificationService } from 'src/notification/notification.service';
 import { ActivityService } from 'src/activity/activity.service';
 
-
 @Injectable()
 export class IssuesService {
-  
   constructor(
     @InjectRepository(Issue)
     private issueRepository: Repository<Issue>,
+
+    @InjectRepository(IssueLabel)
+    private issueLabelRepository: Repository<IssueLabel>,
 
     @Inject(EmailService)
     private readonly emailService: EmailService,
@@ -34,7 +36,6 @@ export class IssuesService {
 
     @Inject(ActivityService)
     private readonly activityService: ActivityService,
-
   ) {}
 
   // UUID 값을 정리하는 헬퍼 함수
@@ -64,10 +65,31 @@ export class IssuesService {
 
   async getIssues(projectId: string) {
     console.log('getIssues projectId', projectId);
-    return await this.issueRepository.find({
+    // 이슈 목록 조회
+    const issues = await this.issueRepository.find({
       where: { projectId },
       order: { position: 'ASC' },
     });
+
+    // 각 이슈에 연결된 라벨 정보 조회
+    const issuesWithLabels = await Promise.all(
+      issues.map(async (issue) => {
+        // issue_label과 label 조인하여 해당 이슈의 라벨 목록 조회
+        const issueLabels = await this.issueLabelRepository.find({
+          where: { issueId: issue.id },
+          relations: ['label'],
+        });
+        // label 정보만 추출
+        const labels = issueLabels
+          .map((il) => il.label)
+          .filter((label) => !!label);
+        return {
+          ...issue,
+          labels,
+        };
+      }),
+    );
+    return issuesWithLabels;
   }
 
   async findIssueById(issueId: string, projectId: string): Promise<Issue> {
@@ -116,47 +138,87 @@ export class IssuesService {
 
     // 변경사항 추적
     if (dto.title !== undefined && dto.title !== originalIssue.title) {
-      changes.push({ field: 'title', oldValue: originalIssue.title, newValue: dto.title });
+      changes.push({
+        field: 'title',
+        oldValue: originalIssue.title,
+        newValue: dto.title,
+      });
       originalIssue.title = dto.title;
     }
-    if (dto.description !== undefined && dto.description !== originalIssue.description) {
-      changes.push({ field: 'description', oldValue: originalIssue.description, newValue: dto.description });
+    if (
+      dto.description !== undefined &&
+      dto.description !== originalIssue.description
+    ) {
+      changes.push({
+        field: 'description',
+        oldValue: originalIssue.description,
+        newValue: dto.description,
+      });
       originalIssue.description = dto.description;
     }
-    if (dto.issueType !== undefined && dto.issueType !== originalIssue.issueType) {
-      changes.push({ field: 'issueType', oldValue: originalIssue.issueType, newValue: dto.issueType });
+    if (
+      dto.issueType !== undefined &&
+      dto.issueType !== originalIssue.issueType
+    ) {
+      changes.push({
+        field: 'issueType',
+        oldValue: originalIssue.issueType,
+        newValue: dto.issueType,
+      });
       originalIssue.issueType = dto.issueType;
     }
     if (dto.status !== undefined && dto.status !== originalIssue.status) {
-      changes.push({ field: 'status', oldValue: originalIssue.status, newValue: dto.status });
+      changes.push({
+        field: 'status',
+        oldValue: originalIssue.status,
+        newValue: dto.status,
+      });
       originalIssue.status = dto.status;
     }
 
     if (dto.assigneeId !== undefined) {
-      const cleanAssigneeId = this.cleanUuid(dto.assigneeId || undefined) || null;
+      const cleanAssigneeId =
+        this.cleanUuid(dto.assigneeId || undefined) || null;
       if (cleanAssigneeId !== originalIssue.assigneeId) {
-        changes.push({ field: 'assigneeId', oldValue: originalIssue.assigneeId, newValue: cleanAssigneeId });
+        changes.push({
+          field: 'assigneeId',
+          oldValue: originalIssue.assigneeId,
+          newValue: cleanAssigneeId,
+        });
         originalIssue.assigneeId = cleanAssigneeId;
       }
     }
     if (dto.reporterId !== undefined) {
-      const cleanReporterId = this.cleanUuid(dto.reporterId || undefined) || null;
+      const cleanReporterId =
+        this.cleanUuid(dto.reporterId || undefined) || null;
       if (cleanReporterId !== originalIssue.reporterId) {
-        changes.push({ field: 'reporterId', oldValue: originalIssue.reporterId, newValue: cleanReporterId });
+        changes.push({
+          field: 'reporterId',
+          oldValue: originalIssue.reporterId,
+          newValue: cleanReporterId,
+        });
         originalIssue.reporterId = cleanReporterId;
       }
     }
     if (dto.startDate !== undefined) {
       const newStartDate = dto.startDate ? new Date(dto.startDate) : null;
       if (newStartDate !== originalIssue.startDate) {
-        changes.push({ field: 'startDate', oldValue: originalIssue.startDate, newValue: newStartDate });
+        changes.push({
+          field: 'startDate',
+          oldValue: originalIssue.startDate,
+          newValue: newStartDate,
+        });
         originalIssue.startDate = newStartDate;
       }
     }
     if (dto.dueDate !== undefined) {
       const newDueDate = dto.dueDate ? new Date(dto.dueDate) : null;
       if (newDueDate !== originalIssue.dueDate) {
-        changes.push({ field: 'dueDate', oldValue: originalIssue.dueDate, newValue: newDueDate });
+        changes.push({
+          field: 'dueDate',
+          oldValue: originalIssue.dueDate,
+          newValue: newDueDate,
+        });
         originalIssue.dueDate = newDueDate;
       }
     }
@@ -235,8 +297,10 @@ export class IssuesService {
     if (userId && projectId && originalIssues.length > 0) {
       try {
         // 상태가 변경된 이슈들 찾기
-        const changedIssues = originalIssues.filter(issue => issue.status !== targetColumnId);
-        
+        const changedIssues = originalIssues.filter(
+          (issue) => issue.status !== targetColumnId,
+        );
+
         // 실제로 상태가 변경된 이슈가 있는 경우만 로깅 (보통 드래그앤드롭은 1개 이슈)
         if (changedIssues.length > 0) {
           // 첫 번째 변경된 이슈만 로깅 (드래그앤드롭은 보통 하나의 이슈만 이동)
@@ -248,12 +312,14 @@ export class IssuesService {
             actionType: 'issue_updated',
             issueTitle: movedIssue.title,
             details: {
-              changes: [{
-                field: 'status',
-                oldValue: movedIssue.status,
-                newValue: targetColumnId,
-                action: 'drag_and_drop'
-              }]
+              changes: [
+                {
+                  field: 'status',
+                  oldValue: movedIssue.status,
+                  newValue: targetColumnId,
+                  action: 'drag_and_drop',
+                },
+              ],
             },
           });
         }
@@ -264,8 +330,11 @@ export class IssuesService {
     }
   }
 
-  
-  async createIssue(projectId: string, dto: CreateIssueDto, user: User): Promise<{ success: string; branchName?: string; branchError?: string }> {
+  async createIssue(
+    projectId: string,
+    dto: CreateIssueDto,
+    user: User,
+  ): Promise<{ success: string; branchName?: string; branchError?: string }> {
     // UUID 값들을 정리
     const cleanAssigneeId = this.cleanUuid(dto.assigneeId);
     const cleanReporterId = user.id;
@@ -295,38 +364,66 @@ export class IssuesService {
       dto.startDate,
       dto.dueDate,
       dto.position,
-      dto.tag ,
+      dto.tag,
     ]);
+
+    // 라벨 관계 생성
+    if (Array.isArray(dto.labels) && result[0]?.id) {
+      for (const label of dto.labels) {
+        if (label && label.id) {
+          const issueLabel = this.issueLabelRepository.create({
+            issueId: result[0].id,
+            labelId: label.id,
+          });
+          await this.issueLabelRepository.save(issueLabel);
+          console.log(
+            `이슈-라벨 관계 생성: issueId=${result[0].id}, labelId=${label.id}`,
+          );
+        }
+      }
+    }
 
     await this.projectService.updateProjectTagNumber(projectId);
 
     // 브랜치 생성 옵션이 활성화된 경우에만 브랜치 생성
     let branchName: string | undefined;
     let branchError: string | undefined;
-    
-    if (dto.createBranch !== false) { // 기본값이 true이므로 false가 아닌 경우 브랜치 생성
+
+    if (dto.createBranch !== false) {
+      // 기본값이 true이므로 false가 아닌 경우 브랜치 생성
       try {
-        const branchResult = await this.createBranchForIssue(projectId, dto.title, user.id);
+        const branchResult = await this.createBranchForIssue(
+          projectId,
+          dto.title,
+          user.id,
+        );
         branchName = branchResult?.branchName;
         branchError = branchResult?.error;
-        console.log(`브랜치 생성 결과 - branchName: ${branchName}, branchError: ${branchError}`);
+        console.log(
+          `브랜치 생성 결과 - branchName: ${branchName}, branchError: ${branchError}`,
+        );
       } catch (error) {
         console.error('브랜치 생성 실패:', error);
         branchError = '브랜치 생성 중 예상치 못한 오류가 발생했습니다.';
       }
     }
 
-  
-    {/* 이슈 생성시 알림 생성 */ }
+    {
+      /* 이슈 생성시 알림 생성 */
+    }
     const projectName = await this.projectService.getProjectName(projectId);
 
-    await this.notificationService.createNotification(user.id, 'issue_created', {
-      issueId: result[0]?.id,
-      issueTitle: dto.title,
-      projectName: projectName,
-      projectId: projectId,
-      createdAt: new Date().toISOString(),
-    });
+    await this.notificationService.createNotification(
+      user.id,
+      'issue_created',
+      {
+        issueId: result[0]?.id,
+        issueTitle: dto.title,
+        projectName: projectName,
+        projectId: projectId,
+        createdAt: new Date().toISOString(),
+      },
+    );
 
     console.log('notification payload', {
       issueId: result,
@@ -334,7 +431,9 @@ export class IssuesService {
       projectName: projectName,
       projectId: projectId,
     });
-    {/* 이슈 생성시 알림 생성 여기까지 */}
+    {
+      /* 이슈 생성시 알림 생성 여기까지 */
+    }
 
     // Activity 로깅 추가
     try {
@@ -356,12 +455,12 @@ export class IssuesService {
       // Activity 로깅 실패해도 기존 로직에는 영향 없음
     }
 
-    const response = { 
+    const response = {
       success: 'Issue created successfully',
       branchName,
-      branchError
+      branchError,
     };
-    
+
     console.log(`createIssue 최종 응답:`, response);
     return response;
   }
@@ -369,7 +468,11 @@ export class IssuesService {
   /**
    * 이슈를 위한 브랜치를 생성하는 메서드
    */
-  private async createBranchForIssue(projectId: string, issueTitle: string, userId: string): Promise<{ branchName?: string; error?: string }> {
+  private async createBranchForIssue(
+    projectId: string,
+    issueTitle: string,
+    userId: string,
+  ): Promise<{ branchName?: string; error?: string }> {
     try {
       // 프로젝트 정보 가져오기
       const project = await this.projectService.findOne(projectId);
@@ -379,10 +482,15 @@ export class IssuesService {
       }
 
       // GitHub URL에서 owner/repo 추출
-      const match = project.repository_url.match(/github\.com\/([^/]+)\/([^/]+)/);
+      const match = project.repository_url.match(
+        /github\.com\/([^/]+)\/([^/]+)/,
+      );
       if (!match) {
         console.log('올바르지 않은 GitHub URL 형식입니다.');
-        return { error: '올바르지 않은 GitHub 저장소 URL 형식입니다. (예: https://github.com/owner/repo)' };
+        return {
+          error:
+            '올바르지 않은 GitHub 저장소 URL 형식입니다. (예: https://github.com/owner/repo)',
+        };
       }
 
       const owner = match[1];
@@ -395,7 +503,9 @@ export class IssuesService {
         baseBranch = repoInfo.default_branch || 'main';
         console.log(`저장소의 기본 브랜치: ${baseBranch}`);
       } catch (error) {
-        console.log(`저장소 정보 조회 실패, 기본값 'main' 사용: ${error.message}`);
+        console.log(
+          `저장소 정보 조회 실패, 기본값 'main' 사용: ${error.message}`,
+        );
       }
 
       // 브랜치 생성
@@ -404,41 +514,50 @@ export class IssuesService {
         owner,
         repo,
         issueTitle,
-        baseBranch
+        baseBranch,
       );
 
-      console.log(`이슈 '${issueTitle}'을 위한 브랜치가 생성되었습니다: ${branchData.branchName}`);
+      console.log(
+        `이슈 '${issueTitle}'을 위한 브랜치가 생성되었습니다: ${branchData.branchName}`,
+      );
       console.log(`브랜치 생성 결과:`, branchData);
-      
+
       return { branchName: branchData.branchName };
     } catch (error) {
       console.error('브랜치 생성 중 오류 발생:', error);
-      
+
       // 오류 메시지 추출
       let errorMessage = '브랜치 생성에 실패했습니다.';
-      
+
       if (error.message) {
         if (error.message.includes('저장소를 찾을 수 없습니다')) {
-          errorMessage = 'GitHub 저장소를 찾을 수 없습니다. 저장소 이름과 소유자를 확인해주세요.';
+          errorMessage =
+            'GitHub 저장소를 찾을 수 없습니다. 저장소 이름과 소유자를 확인해주세요.';
         } else if (error.message.includes('접근 권한이 없습니다')) {
-          errorMessage = 'GitHub 저장소에 대한 접근 권한이 없습니다. 저장소가 비공개인 경우 소유자에게 접근 권한을 요청하세요.';
+          errorMessage =
+            'GitHub 저장소에 대한 접근 권한이 없습니다. 저장소가 비공개인 경우 소유자에게 접근 권한을 요청하세요.';
         } else if (error.message.includes('GitHub 인증이 만료')) {
-          errorMessage = 'GitHub 인증이 만료되었습니다. GitHub OAuth를 다시 연결해주세요.';
+          errorMessage =
+            'GitHub 인증이 만료되었습니다. GitHub OAuth를 다시 연결해주세요.';
         } else if (error.message.includes('브랜치가 이미 존재')) {
           errorMessage = '동일한 이름의 브랜치가 이미 존재합니다.';
         } else if (error.message.includes('브랜치 생성 권한')) {
-          errorMessage = '브랜치 생성 권한이 없습니다. GitHub OAuth에서 repo 권한을 확인해주세요.';
+          errorMessage =
+            '브랜치 생성 권한이 없습니다. GitHub OAuth에서 repo 권한을 확인해주세요.';
         } else {
           errorMessage = error.message;
         }
       }
-      
+
       return { error: errorMessage };
     }
-
   }
 
-  async deleteIssue(issueId: string, projectId: string, userId?: string): Promise<void> {
+  async deleteIssue(
+    issueId: string,
+    projectId: string,
+    userId?: string,
+  ): Promise<void> {
     // Activity 로깅을 위해 삭제 전에 이슈 정보 가져오기
     let issueTitle = '';
     if (userId) {
@@ -478,9 +597,4 @@ export class IssuesService {
     await this.issueRepository.save(issue);
     return issue;
   }
-
-
-  
-
-  
 }
