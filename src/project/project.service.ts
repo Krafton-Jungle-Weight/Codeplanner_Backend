@@ -423,4 +423,12 @@ export class ProjectService {
     await this.labelRepo.delete(labelId);
     return { message: '라벨이 삭제되었습니다.' };
   }
+
+
+  async getProjectMembers(projectId: string) {
+    const members = await this.projectMemberRepo.find({
+      where: { project_id: projectId },
+    });
+    return members;
+  }
 }
