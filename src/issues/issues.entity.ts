@@ -1,6 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { GithubCommits } from '../github/github-commits.entity';
 import { Comment } from '../comments/comment.entity';
+import { IssueLabel } from './issue_label.entity';
 
 @Entity('issue')
 export class Issue {
@@ -51,4 +52,10 @@ export class Issue {
    */
   @OneToMany(() => Comment, (comment) => comment.issue)
   comments: Comment[];
+
+  /**
+   * 연결된 라벨들 (1:N 관계: 한 이슈에 여러 라벨 매핑)
+   */
+  @OneToMany(() => IssueLabel, (issueLabel) => issueLabel.issue)
+  issueLabels: IssueLabel[];
 }

@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { IssuesService } from './issues.service';
 import { CreateIssueDto, ReorderIssuesDto } from './issues-update.dto';
 import { UpdateIssueDto } from './dto/issue-info.dto';
@@ -10,7 +19,7 @@ import { User } from 'src/user/user.entity';
 @Controller('projects')
 export class IssuesController {
   constructor(private readonly issuesService: IssuesService) {}
-  
+
   @UseGuards(JwtAuthGuard)
   @Get('/:projectId/issues')
   getIssues(@Param('projectId') projectId: string) {
@@ -48,11 +57,11 @@ export class IssuesController {
   ) {
     console.log(projectId, dto);
     const result = await this.issuesService.createIssue(projectId, dto, user);
-    
+
     return result;
   }
 
-  @UseGuards(JwtAuthGuard)  
+  @UseGuards(JwtAuthGuard)
   @Get('/:projectId/my-issues-count')
   async getMyIssueCount(
     @CurrentUser() user: any,
@@ -68,8 +77,8 @@ export class IssuesController {
   @UseGuards(JwtAuthGuard)
   @Get('/:projectId/my-issues')
   getMyIssue(
-  @CurrentUser() user: any,
-  @Param('projectId') projectId: string,
+    @CurrentUser() user: any,
+    @Param('projectId') projectId: string,
   ): Promise<Issue[]> {
     return this.issuesService.getIssuesCurrentUser(user.id, projectId);
   }
@@ -90,7 +99,12 @@ export class IssuesController {
     @Param('issueId') issueId: string,
     @CurrentUser() user: User,
   ): Promise<Issue> {
-    return this.issuesService.updateIssueInfo(IssueInfoDto, projectId, issueId, user.id);
+    return this.issuesService.updateIssueInfo(
+      IssueInfoDto,
+      projectId,
+      issueId,
+      user.id,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -107,21 +121,19 @@ export class IssuesController {
   @Post('/issues/:id/update-dates')
   async updateIssueDates(
     @Param('id') id: string,
-    @Body() body: { startDate: string, dueDate: string, projectId: string },
+    @Body() body: { startDate: string; dueDate: string; projectId: string },
     @CurrentUser() user: User,
   ) {
     return this.issuesService.updateIssueInfo(
-      { 
-        startDate: body.startDate ? new Date(body.startDate) : undefined, 
-        dueDate: body.dueDate ? new Date(body.dueDate) : undefined 
+      {
+        startDate: body.startDate ? new Date(body.startDate) : undefined,
+        dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
       },
       body.projectId,
       id,
-      user.id
+      user.id,
     );
   }
-
-
 
   // 이슈 업데이트 (issue detail)
   @UseGuards(JwtAuthGuard)
@@ -134,5 +146,4 @@ export class IssuesController {
   ) {
     return this.issuesService.updateIssueInfo(dto, projectId, issueId, user.id);
   }
-  
 }
