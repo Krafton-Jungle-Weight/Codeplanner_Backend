@@ -335,134 +335,163 @@ export class IssuesService {
     dto: CreateIssueDto,
     user: User,
   ): Promise<{ success: string; branchName?: string; branchError?: string }> {
-    // UUID 값들을 정리
-    const cleanAssigneeId = this.cleanUuid(dto.assigneeId);
-    const cleanReporterId = user.id;
-    console.log('dto', dto);
-    if (dto.assigneeId) {
-      this.emailService.sendIssueAllocateEmail(
-        dto.assigneeId,
-        dto.title,
-        projectId,
+    // 트랜잭션 시작
+    const queryRunner =
+      this.issueRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // UUID 값들을 정리
+      const cleanAssigneeId = this.cleanUuid(dto.assigneeId);
+      const cleanReporterId = user.id;
+      console.log('dto', dto);
+      if (dto.assigneeId) {
+        this.emailService.sendIssueAllocateEmail(
+          dto.assigneeId,
+          dto.title,
+          projectId,
+        );
+      }
+
+      // 프로젝트의 tag와 tag_number 가져오기 (트랜잭션 내에서)
+      // SELECT FOR UPDATE로 프로젝트를 락하여 동시성 제어
+      const projectResult = await queryRunner.query(
+        'SELECT tag, tag_number FROM project WHERE id = $1 FOR UPDATE',
+        [projectId],
       );
-    }
 
-    // 알림 기능을 위해 쿼리문 마지막에 'RETURNING id;' 추가
-    const sql = `
-      INSERT INTO issue (project_id, title, description, issue_type, status, assignee_id, reporter_id, start_date, due_date, position, tag)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING id;
-    `;
-    const result = await this.issueRepository.query(sql, [
-      projectId,
-      dto.title,
-      dto.description,
-      dto.issueType,
-      dto.status,
-      cleanAssigneeId,
-      cleanReporterId,
-      dto.startDate,
-      dto.dueDate,
-      dto.position,
-      dto.tag,
-    ]);
+      if (!projectResult || projectResult.length === 0) {
+        throw new Error('프로젝트를 찾을 수 없습니다.');
+      }
 
-    // 라벨 관계 생성
-    if (Array.isArray(dto.labels) && result[0]?.id) {
-      for (const label of dto.labels) {
-        if (label && label.id) {
-          const issueLabel = this.issueLabelRepository.create({
-            issueId: result[0].id,
-            labelId: label.id,
-          });
-          await this.issueLabelRepository.save(issueLabel);
-          console.log(
-            `이슈-라벨 관계 생성: issueId=${result[0].id}, labelId=${label.id}`,
-          );
+      const project = projectResult[0];
+      const combinedTag = `${project.tag}-${project.tag_number}`;
+      console.log('combinedTag', combinedTag);
+
+      // 이슈 생성 (트랜잭션 내에서)
+      const sql = `
+        INSERT INTO issue (project_id, title, description, issue_type, status, assignee_id, reporter_id, start_date, due_date, position, tag)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING id;
+      `;
+      const result = await queryRunner.query(sql, [
+        projectId,
+        dto.title,
+        dto.description,
+        dto.issueType,
+        dto.status,
+        cleanAssigneeId,
+        cleanReporterId,
+        dto.startDate,
+        dto.dueDate,
+        dto.position,
+        combinedTag,
+      ]);
+
+      // 프로젝트 tag_number 업데이트 (트랜잭션 내에서)
+      await queryRunner.query(
+        'UPDATE project SET tag_number = tag_number + 1 WHERE id = $1',
+        [projectId],
+      );
+
+      // 라벨 관계 생성 (트랜잭션 내에서)
+      if (Array.isArray(dto.labels) && result[0]?.id) {
+        for (const label of dto.labels) {
+          if (label && label.id) {
+            await queryRunner.query(
+              'INSERT INTO issue_label (issue_id, label_id) VALUES ($1, $2)',
+              [result[0].id, label.id],
+            );
+            console.log(
+              `이슈-라벨 관계 생성: issueId=${result[0].id}, labelId=${label.id}`,
+            );
+          }
         }
       }
-    }
 
-    await this.projectService.updateProjectTagNumber(projectId);
+      // 트랜잭션 커밋
+      await queryRunner.commitTransaction();
 
-    // 브랜치 생성 옵션이 활성화된 경우에만 브랜치 생성
-    let branchName: string | undefined;
-    let branchError: string | undefined;
+      // 트랜잭션 외부에서 실행되는 작업들 (실패해도 이슈 생성에는 영향 없음)
+      let branchName: string | undefined;
+      let branchError: string | undefined;
 
-    if (dto.createBranch !== false) {
-      // 기본값이 true이므로 false가 아닌 경우 브랜치 생성
-      try {
-        const branchResult = await this.createBranchForIssue(
-          projectId,
-          dto.title,
-          user.id,
-        );
-        branchName = branchResult?.branchName;
-        branchError = branchResult?.error;
-        console.log(
-          `브랜치 생성 결과 - branchName: ${branchName}, branchError: ${branchError}`,
-        );
-      } catch (error) {
-        console.error('브랜치 생성 실패:', error);
-        branchError = '브랜치 생성 중 예상치 못한 오류가 발생했습니다.';
+      if (dto.createBranch !== false) {
+        try {
+          const branchResult = await this.createBranchForIssue(
+            projectId,
+            dto.title,
+            user.id,
+          );
+          branchName = branchResult?.branchName;
+          branchError = branchResult?.error;
+          console.log(
+            `브랜치 생성 결과 - branchName: ${branchName}, branchError: ${branchError}`,
+          );
+        } catch (error) {
+          console.error('브랜치 생성 실패:', error);
+          branchError = '브랜치 생성 중 예상치 못한 오류가 발생했습니다.';
+        }
       }
-    }
 
-    {
-      /* 이슈 생성시 알림 생성 */
-    }
-    const projectName = await this.projectService.getProjectName(projectId);
+      // 알림 생성
+      const projectName = await this.projectService.getProjectName(projectId);
+      await this.notificationService.createNotification(
+        user.id,
+        'issue_created',
+        {
+          issueId: result[0]?.id,
+          issueTitle: dto.title,
+          projectName: projectName,
+          projectId: projectId,
+          createdAt: new Date().toISOString(),
+        },
+      );
 
-    await this.notificationService.createNotification(
-      user.id,
-      'issue_created',
-      {
-        issueId: result[0]?.id,
+      console.log('notification payload', {
+        issueId: result,
         issueTitle: dto.title,
         projectName: projectName,
         projectId: projectId,
-        createdAt: new Date().toISOString(),
-      },
-    );
-
-    console.log('notification payload', {
-      issueId: result,
-      issueTitle: dto.title,
-      projectName: projectName,
-      projectId: projectId,
-    });
-    {
-      /* 이슈 생성시 알림 생성 여기까지 */
-    }
-
-    // Activity 로깅 추가
-    try {
-      await this.activityService.createActivity({
-        projectId,
-        issueId: result[0]?.id,
-        userId: user.id,
-        actionType: 'issue_created',
-        issueTitle: dto.title,
-        details: {
-          issueType: dto.issueType,
-          status: dto.status,
-          assigneeId: cleanAssigneeId,
-          reporterId: cleanReporterId,
-        },
       });
+
+      // Activity 로깅
+      try {
+        await this.activityService.createActivity({
+          projectId,
+          issueId: result[0]?.id,
+          userId: user.id,
+          actionType: 'issue_created',
+          issueTitle: dto.title,
+          details: {
+            issueType: dto.issueType,
+            status: dto.status,
+            assigneeId: cleanAssigneeId,
+            reporterId: cleanReporterId,
+          },
+        });
+      } catch (error) {
+        console.error('Activity 로깅 실패:', error);
+      }
+
+      const response = {
+        success: 'Issue created successfully',
+        branchName,
+        branchError,
+      };
+
+      console.log(`createIssue 최종 응답:`, response);
+      return response;
     } catch (error) {
-      console.error('Activity 로깅 실패:', error);
-      // Activity 로깅 실패해도 기존 로직에는 영향 없음
+      // 트랜잭션 롤백
+      await queryRunner.rollbackTransaction();
+      console.error('이슈 생성 중 오류:', error);
+      throw error;
+    } finally {
+      // 쿼리 러너 해제
+      await queryRunner.release();
     }
-
-    const response = {
-      success: 'Issue created successfully',
-      branchName,
-      branchError,
-    };
-
-    console.log(`createIssue 최종 응답:`, response);
-    return response;
   }
 
   /**

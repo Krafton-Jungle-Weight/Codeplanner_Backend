@@ -126,6 +126,8 @@ export class ProjectService {
       project_people: project.members?.length || 0,
       project_leader: project.leader?.display_name || 'Unknown',
       leader_id: project.leader_id,
+      tag: project.tag,
+      tag_number: project.tag_number,
     };
   }
 
