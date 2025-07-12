@@ -74,4 +74,27 @@ export class GithubPullRequestService {
 
       return response.data;
   }
+
+  async getMergeCommit(user: any, projectId: string, body: any){
+    const { pull_number, owner, repo } = body;
+
+    const githubToken = await this.githubTokenRepository.findOne({
+      where: { user_id: user.id },
+    });
+
+    if (!githubToken) {
+      throw new Error('GitHub 토큰이 없습니다.');
+    }
+
+    const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${pull_number}/merge`;
+
+    const response = await axios.put(url, null, {
+      headers: {
+        Authorization: `Bearer ${githubToken.access_token}`,
+        Accept: 'application/vnd.github+json',
+      },
+    });
+
+    return response.data;
+  }
 }
