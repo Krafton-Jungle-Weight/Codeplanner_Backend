@@ -1,15 +1,19 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete, BadRequestException } from '@nestjs/common';
 import { ProjectService } from './project.service';
 import { CreateProjectDto, ProjectResponseDto } from './dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 import { User } from 'src/user/user.entity';
 import { Project } from './project.entity';
+import { EmailService } from 'src/email/email.service';
 
 // 프로젝트 컨트롤러
 @Controller('/projects')
 export class ProjectController {
-  constructor(private readonly projectService: ProjectService) {}
+  constructor(
+    private readonly projectService: ProjectService,
+    private readonly emailService: EmailService,
+  ) {}
 
   // 프로젝트 전체 조회
   @UseGuards(JwtAuthGuard)
@@ -121,6 +125,16 @@ export class ProjectController {
     return this.projectService.getMembers(id);
   }
 
+  // 현재 사용자의 프로젝트 내 역할 조회
+  @Get(':id/my-role')
+  @UseGuards(JwtAuthGuard)
+  async getMyProjectRole(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.projectService.getUserRole(id, user.id);
+  }
+
   // 프로젝트 팀원 초대
   @Post(':id/members/invite')
   @UseGuards(JwtAuthGuard)
@@ -130,6 +144,79 @@ export class ProjectController {
     @CurrentUser() user: User,
   ) {
     return this.projectService.addProjectMember(id, body.userId, body.role);
+  }
+
+  // 이메일로 프로젝트 초대
+  @Post(':id/invite')
+  @UseGuards(JwtAuthGuard)
+  async sendEmailInvitation(
+    @Param('id') id: string,
+    @Body() body: { email: string; role: string },
+    @CurrentUser() user: User,
+  ) {
+    const { email, role } = body;
+    
+    console.log('초대 요청 수신:', { id, email, role });
+
+    // 프로젝트 ID 검증 (UUID 형식)
+    const projectId = id;
+    if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
+      console.log('프로젝트 ID가 유효하지 않습니다:', id);
+      throw new BadRequestException('올바르지 않은 프로젝트 ID입니다.');
+    }
+
+    // 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new BadRequestException('올바른 이메일 형식이 아닙니다.');
+    }
+
+    // 역할 검증
+    if (!['ADMIN', 'MEMBER', 'VIEWER'].includes(role)) {
+      throw new BadRequestException('올바르지 않은 역할입니다.');
+    }
+
+    // 프로젝트 정보 조회
+    const project = await this.projectService.findOne(id);
+    if (!project) {
+      throw new BadRequestException('프로젝트를 찾을 수 없습니다.');
+    }
+
+    // 사용자 권한 확인 (리더 또는 관리자만 초대 가능)
+    const userRole = await this.projectService.getUserRole(id, user.id);
+    if (!userRole.isLeader && userRole.role !== 'ADMIN') {
+      throw new BadRequestException('초대 권한이 없습니다.');
+    }
+
+    // 관리자는 ADMIN 역할로 초대할 수 없음
+    if (!userRole.isLeader && role === 'ADMIN') {
+      throw new BadRequestException('관리자 임명은 리더만 가능합니다.');
+    }
+
+    try {
+      // 초대 토큰 생성
+      const token = await this.emailService.createInvitationToken(
+        email,
+        projectId,
+        role,
+      );
+
+      // 초대 이메일 발송
+      await this.emailService.sendProjectInvitationEmail(
+        email,
+        project.title,
+        user.display_name,
+        role,
+        token,
+      );
+
+      return {
+        success: true,
+        message: '초대 이메일이 발송되었습니다.',
+      };
+    } catch (error) {
+      throw new BadRequestException('초대 발송에 실패했습니다: ' + error.message);
+    }
   }
 
   // 프로젝트 팀원 역할 변경

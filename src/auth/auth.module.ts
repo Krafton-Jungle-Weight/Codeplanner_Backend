@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { EmailService } from 'src/email/email.service';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UserService } from 'src/user/user.service';
@@ -17,9 +16,10 @@ import { EmailModule } from 'src/email/email.module';
       signOptions: { expiresIn: '1h' },
     }),
     TypeOrmModule.forFeature([User, EmailVerificationToken, GithubToken]),
+    EmailModule,
   ],
   controllers: [AuthController],
-  providers: [EmailService, AuthService, UserService, EmailService],
+  providers: [AuthService, UserService],
   exports: [JwtModule],
 })
 export class AuthModule {}

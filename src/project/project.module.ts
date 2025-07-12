@@ -7,11 +7,14 @@ import { ProjectService } from './project.service';
 import { ProjectController } from './project.controller';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AuthModule } from 'src/auth/auth.module';
+import { EmailModule } from 'src/email/email.module';
+
 // 프로젝트 모듈
 @Module({
   imports: [
     TypeOrmModule.forFeature([Project, ProjectMember, User]),
     AuthModule,
+    EmailModule,
   ],
   providers: [ProjectService, JwtAuthGuard],
   controllers: [ProjectController],

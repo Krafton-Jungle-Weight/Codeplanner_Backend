@@ -125,12 +125,12 @@ export class ProjectService {
     const project = this.projectRepo.create(projectData);
     const savedProject = await this.projectRepo.save(project);
 
-    // 프로젝트 생성 후 leader를 project_member에 READER 역할로 추가
+    // 프로젝트 생성 후 leader를 project_member에 LEADER 역할로 추가
     if (projectData.leader_id) {
       await this.addProjectMember(
         savedProject.id,
         projectData.leader_id,
-        'ADMIN',
+        'LEADER',
       );
     }
 
@@ -201,6 +201,41 @@ export class ProjectService {
       email: member.user.email,
       role: member.role,
     }));
+  }
+
+  // 현재 사용자의 프로젝트 내 역할 조회
+  async getUserRole(projectId: string, userId: string) {
+    // 프로젝트가 존재하는지 확인
+    const project = await this.projectRepo.findOne({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException('프로젝트를 찾을 수 없습니다.');
+    }
+
+    // 사용자가 프로젝트 리더인지 확인
+    const isLeader = project.leader_id === userId;
+
+    // 프로젝트 멤버 테이블에서 사용자의 역할 확인
+    const member = await this.projectMemberRepo.findOne({
+      where: { project_id: projectId, user_id: userId },
+    });
+
+    if (!member) {
+      // 프로젝트 멤버가 아닌 경우
+      return {
+        role: 'NONE',
+        isLeader: false,
+        message: '프로젝트 멤버가 아닙니다.',
+      };
+    }
+
+    return {
+      role: member.role,
+      isLeader: isLeader,
+      message: '성공적으로 역할을 조회했습니다.',
+    };
   }
 
   // 프로젝트 팀원 역할 변경
