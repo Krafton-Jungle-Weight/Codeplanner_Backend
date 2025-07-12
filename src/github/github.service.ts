@@ -26,8 +26,8 @@ export class GithubService {
     });
 
     if (!tokenEntity) {
-      console.error(
-        `[GitHub Service] 사용자 ${userId}의 GitHub 토큰을 찾을 수 없습니다`,
+      console.log(
+        `[GitHub Service] 사용자 ${userId}의 GitHub 토큰을 찾을 수 없습니다. 토큰 없이 공개 저장소 조회 시도`
       );
       console.log(`[GitHub Service] DB에서 조회된 토큰:`, tokenEntity);
       throw new Error('GitHub access token not found for user');
@@ -47,6 +47,7 @@ export class GithubService {
     return {
       Authorization: `token ${tokenEntity.access_token}`,
       Accept: 'application/vnd.github+json',
+      'User-Agent': 'CodePlanner-App'
     };
   }
 
