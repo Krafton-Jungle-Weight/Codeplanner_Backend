@@ -107,6 +107,12 @@ export class UserController {
   @Get('/:id')
   async getUserByIdForIssue(@Param('id') id: string) {
     console.log('getUserByIdForIssue: ', id);
+
+    // null, undefined, 'null' 문자열 체크
+    if (!id || id === 'null' || id === 'undefined') {
+      return null;
+    }
+
     return await this.userService.getUserByIdForIssue(id);
   }
 }

@@ -290,6 +290,8 @@ export class GithubController {
       throw new Error(`토큰 상태 확인 실패: ${error.message}`);
     }
   }
+
+  /* 사용자가 작성한 PR의 파일 변경 내역을 가져오는 엔드포인트 */
   @UseGuards(JwtAuthGuard)
   @Get('project/:projectId/pull-request-file-changes/:pull_number/:owner/:repo')
   async getPullRequestFileChanges(
@@ -410,6 +412,30 @@ export class GithubController {
       owner,
       repo,
       sha,
+      user.id,
+    );
+  }
+
+  /**
+   * PR 기준으로 최근 변경된 파일들 가져오기 (중복 제거)
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('repos/:owner/:repo/pulls/:pullNumber/recent-files')
+  async getRecentChangedFilesInPullRequest(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('pullNumber') pullNumber: string,
+    @CurrentUser() user: any,
+  ) {
+    const pullNumberInt = parseInt(pullNumber, 10);
+    if (isNaN(pullNumberInt)) {
+      throw new Error('올바른 PR 번호를 입력해주세요.');
+    }
+    
+    return this.githubService.getRecentChangedFilesInPullRequest(
+      owner,
+      repo,
+      pullNumberInt,
       user.id,
     );
   }

@@ -5,6 +5,7 @@ import { IssuesService } from 'src/issues/issues.service';
 import { ProjectMember } from 'src/project/project-member.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Issue } from 'src/issues/issues.entity';
+import { IssueLabel } from 'src/issues/issue_label.entity';
 
 // 인증 모듈
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
@@ -19,7 +20,7 @@ import { ActivityModule } from 'src/activity/activity.module';
   providers: [SummaryService, JwtAuthGuard, IssuesService],
   controllers: [SummaryController],
   imports: [
-    TypeOrmModule.forFeature([ProjectMember, Issue]),
+    TypeOrmModule.forFeature([ProjectMember, Issue, IssueLabel]),
     AuthModule,
     EmailModule,
     ProjectModule,

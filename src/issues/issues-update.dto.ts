@@ -9,7 +9,12 @@ import {
   Min,
   MaxLength,
   IsBoolean,
+  IsHexColor,
+  ValidateNested,
+  IsArray,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { Label } from './label.entity';
 
 export class ReorderIssuesDto {
   @ArrayNotEmpty()
@@ -66,11 +71,15 @@ export class CreateIssueDto {
   @IsString()
   tag?: string;
 
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => Label)
+  labels?: Label[];
 
   @IsOptional()
   @IsBoolean()
   createBranch?: boolean;
-
 }
 
 export class UpdateIssueDto {
