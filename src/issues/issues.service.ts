@@ -496,25 +496,58 @@ export class IssuesService {
       }
 
       // 알림 생성
-      const projectName = await this.projectService.getProjectName(projectId);
-      await this.notificationService.createNotification(
-        user.id,
-        'issue_created',
-        {
-          issueId: result[0]?.id,
+      if (cleanAssigneeId) {
+        const projectName = await this.projectService.getProjectName(projectId);
+        await this.notificationService.createNotification(
+          cleanAssigneeId,
+          'issue_created_assignee',
+          {
+            issueId: result[0]?.id,
+            issueTitle: dto.title,
+            projectName: projectName,
+            projectId: projectId,
+          },
+        );
+
+        console.log('notification payload', {
+          issueId: result,
           issueTitle: dto.title,
           projectName: projectName,
           projectId: projectId,
-          createdAt: new Date().toISOString(),
-        },
-      );
+        });
+      }
 
-      console.log('notification payload', {
-        issueId: result,
-        issueTitle: dto.title,
-        projectName: projectName,
-        projectId: projectId,
-      });
+      // 백로그에 이슈 생성시 프로젝트의 모든 인원에게 알람.
+      if (dto.status === 'BACKLOG') {
+        const projectMembers =
+          await this.projectService.getProjectMembers(projectId);
+        const projectName = await this.projectService.getProjectName(projectId);
+
+        // 프로젝트 멤버들에게 알림 생성
+        for (const member of projectMembers) {
+          try {
+            await this.notificationService.createNotification(
+              member.user_id,
+              'issue_created_backlog',
+              {
+                issueId: result[0]?.id,
+                issueTitle: dto.title,
+                projectName: projectName,
+                projectId: projectId,
+                createdBy: user.id,
+                createdByDisplayName: user.display_name || user.email,
+              },
+            );
+          } catch (error) {
+            console.error(`멤버 ${member.user_id}에게 알림 생성 실패:`, error);
+            // 개별 멤버 알림 실패해도 다른 멤버들에게는 계속 진행
+          }
+        }
+
+        console.log(
+          `백로그 이슈 생성 알림: ${projectMembers.length}명의 프로젝트 멤버에게 전송됨`,
+        );
+      }
 
       // Activity 로깅
       try {
@@ -544,8 +577,10 @@ export class IssuesService {
       console.log(`createIssue 최종 응답:`, response);
       return response;
     } catch (error) {
-      // 트랜잭션 롤백
-      await queryRunner.rollbackTransaction();
+      // 트랜잭션 롤백 (트랜잭션이 아직 활성 상태인 경우에만)
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
       console.error('이슈 생성 중 오류:', error);
       throw error;
     } finally {

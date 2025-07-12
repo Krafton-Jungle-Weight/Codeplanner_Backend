@@ -188,4 +188,19 @@ export class UserService {
     }
     return { id: user.id, displayName: user.display_name };
   }
+
+  // 이메일로 유저 찾기 (초대 기능용)
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOneBy({ email });
+  }
+
+
+
+
+
+
+
+
+  
 }
+

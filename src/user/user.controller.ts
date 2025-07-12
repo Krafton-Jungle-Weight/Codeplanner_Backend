@@ -106,7 +106,7 @@ export class UserController {
   // id로 유저 찾기
   @Get('/:id')
   async getUserByIdForIssue(@Param('id') id: string) {
-    console.log('getUserByIdForIssue: ', id);
+    // console.log('getUserByIdForIssue: ', id);
 
     // null, undefined, 'null' 문자열 체크
     if (!id || id === 'null' || id === 'undefined') {

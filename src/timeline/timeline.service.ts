@@ -36,7 +36,7 @@ export class TimelineService {
         totalProgress += 0;
       }
     }
-    const avgProgress = issues.length > 0 ? totalProgress / issues.length : 0;
+    const avgProgress = issues.length > 0 ? Math.floor(totalProgress / issues.length) : 0;
 
     // 프로젝트 정보 조회 (마감일 포함)
     const project = await this.projectRepository.findOne({
@@ -44,13 +44,12 @@ export class TimelineService {
       select: ['due_date', 'title']
     });
 
-    // 팀원 수 계산 (issue.assignee_id의 고유 개수)
-    const teamMembersCount = await this.issueRepository
-      .createQueryBuilder('issue')
-      .select('COUNT(DISTINCT issue.assigneeId)', 'count')
-      .where('issue.projectId = :projectId', { projectId })
-      .andWhere('issue.assigneeId IS NOT NULL')
-      .getRawOne();
+    // 팀원 수 계산 (프로젝트 멤버 테이블에서 조회)
+    const teamMembersCount = await this.projectRepository
+      .createQueryBuilder('project')
+      .leftJoinAndSelect('project.members', 'member')
+      .where('project.id = :projectId', { projectId })
+      .getOne();
 
     // 프로젝트 제목 (프로젝트 테이블의 title 사용)
     const projectTitle = project?.title || '프로젝트';
@@ -59,7 +58,7 @@ export class TimelineService {
       totalTasks,
       progress: avgProgress,
       dueDate: project?.due_date ? new Date(project.due_date).toISOString().split('T')[0] : null,
-      teamMembers: parseInt(teamMembersCount?.count || '0'),
+      teamMembers: teamMembersCount?.members?.length || 0,
       projectTitle
     };
   }

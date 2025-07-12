@@ -20,6 +20,8 @@ import { NotificationModule } from './notification/notification.moduel';
 import { CommentModule } from './comments/comment.module';
 import { ActivityModule } from './activity/activity.module';
 import { LogHeadersMiddleware } from './common/middleware/log-headers.middleware';
+import { ProjectModule } from './project/project.module';
+import { InviteModule } from './invite/invite.module';
 
 @Module({
   imports: [
@@ -44,6 +46,8 @@ import { LogHeadersMiddleware } from './common/middleware/log-headers.middleware
     NotificationModule,
     CommentModule,
     ActivityModule,
+    ProjectModule,
+    InviteModule,
   ],
   controllers: [AppController, EmailController],
 
