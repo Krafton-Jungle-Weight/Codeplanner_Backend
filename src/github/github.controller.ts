@@ -290,6 +290,8 @@ export class GithubController {
       throw new Error(`토큰 상태 확인 실패: ${error.message}`);
     }
   }
+
+  /* 사용자가 작성한 PR의 파일 변경 내역을 가져오는 엔드포인트 */
   @UseGuards(JwtAuthGuard)
   @Get('project/:projectId/pull-request-file-changes/:pull_number/:owner/:repo')
   async getPullRequestFileChanges(

@@ -1,6 +1,6 @@
 // ⚠️⚠️⚠️배포환경 관련 설정 주의 필요!!!⚠️⚠️⚠️
 
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './modules/app/app.controller';
 import { AppService } from './modules/app/app.service';
@@ -19,6 +19,7 @@ import { AimodelModule } from './aimodel/aimodel.module';
 import { NotificationModule } from './notification/notification.moduel';
 import { CommentModule } from './comments/comment.module';
 import { ActivityModule } from './activity/activity.module';
+import { LogHeadersMiddleware } from './common/middleware/log-headers.middleware';
 
 @Module({
   imports: [
@@ -48,4 +49,8 @@ import { ActivityModule } from './activity/activity.module';
 
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LogHeadersMiddleware).forRoutes('*');
+  }
+}

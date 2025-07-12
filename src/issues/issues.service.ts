@@ -115,6 +115,15 @@ export class IssuesService {
       throw new NotFoundException('해당 이슈를 찾을 수 없습니다.');
     }
 
+    // 이슈의 라벨 정보 조회
+    const issueLabels = await this.issueLabelRepository.find({
+      where: { issueId: issueId },
+      relations: ['label'],
+    });
+    const labels = issueLabels
+      .map((il) => il.label)
+      .filter((label) => !!label);
+
     return {
       title: issue.title,
       description: issue.description ?? '',
@@ -124,6 +133,7 @@ export class IssuesService {
       reporterId: issue.reporterId ?? null,
       startDate: issue.startDate ?? null,
       dueDate: issue.dueDate ?? null,
+      labels: labels,
     };
   }
 
@@ -222,6 +232,56 @@ export class IssuesService {
         originalIssue.dueDate = newDueDate;
       }
     }
+
+    // 라벨 업데이트 처리
+    if (dto.labels !== undefined) {
+      // 기존 라벨 관계 조회
+      const existingLabels = await this.issueLabelRepository.find({
+        where: { issueId: issueId },
+        relations: ['label'],
+      });
+
+      const existingLabelIds = existingLabels.map(il => il.label.id);
+      const newLabelIds = dto.labels.map(label => label.id);
+
+      // 제거할 라벨들
+      const labelsToRemove = existingLabels.filter(il => 
+        !newLabelIds.includes(il.label.id)
+      );
+
+      // 추가할 라벨들
+      const labelsToAdd = dto.labels.filter(label => 
+        !existingLabelIds.includes(label.id)
+      );
+
+      // 라벨 관계 삭제
+      if (labelsToRemove.length > 0) {
+        await this.issueLabelRepository.remove(labelsToRemove);
+      }
+
+      // 라벨 관계 추가
+      if (labelsToAdd.length > 0) {
+        const newIssueLabels = labelsToAdd.map(label => 
+          this.issueLabelRepository.create({
+            issueId: issueId,
+            labelId: label.id,
+          })
+        );
+        await this.issueLabelRepository.save(newIssueLabels);
+      }
+
+      // 변경사항 로깅
+      if (labelsToRemove.length > 0 || labelsToAdd.length > 0) {
+        changes.push({
+          field: 'labels',
+          oldValue: existingLabelIds,
+          newValue: newLabelIds,
+          removedLabels: labelsToRemove.map(il => il.label.name),
+          addedLabels: labelsToAdd.map(label => label.name),
+        });
+      }
+    }
+    
 
     const updatedIssue = await this.issueRepository.save(originalIssue);
 

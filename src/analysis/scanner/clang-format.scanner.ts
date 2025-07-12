@@ -1,5 +1,5 @@
 import { execa } from 'execa';
-import { BaseScanner, ScannerConfig, ScannerResult } from './base.scanner';
+import { BaseScanner, ScannerConfig, ScannerResult, ScannerIssue } from './base.scanner';
 import { promises as fs } from 'fs';
 
 export class ClangFormatScanner extends BaseScanner {
@@ -9,37 +9,47 @@ export class ClangFormatScanner extends BaseScanner {
 
   async execute(): Promise<ScannerResult> {
     try {
-      // 1. 포맷 검사: --dry-run --Werror (exitCode 0: 포맷 맞음, 1: 틀림)
       let formatCheckSuccess = true;
+      let diffOutput = '';
+      let issues: ScannerIssue[] = [];
+
       try {
-        await execa('clang-format', [
-          '--dry-run', '--Werror', this.config.filePath
-        ]);
-        formatCheckSuccess = true; // 포맷 맞음
+        await execa('clang-format', ['--dry-run', '--Werror', this.config.filePath]);
       } catch (checkErr: any) {
         if (checkErr.exitCode === 1) {
-          formatCheckSuccess = false; // 포맷 틀림
+          formatCheckSuccess = false;
+          diffOutput = '[clang-format] 코드 스타일이 맞지 않습니다. 파일을 clang-format으로 자동 정렬해 주세요.';
+          issues.push({
+            file: this.config.filePath,
+            line: 0,
+            column: 0,
+            type: 'style',
+            message: diffOutput,
+            checker: 'clang-format'
+          });
         } else {
-          // clang-format 실행 자체가 실패한 경우
           return {
             tool: 'clang-format',
             success: false,
-            output: checkErr.stdout || checkErr.stderr || checkErr.message,
+            output: '[clang-format] 실행 오류:\n' + (checkErr.stdout || '') + (checkErr.stderr ? '\n' + checkErr.stderr : '') + (checkErr.message ? '\n' + checkErr.message : ''),
+            issues: []
           };
         }
       }
-      // 2. 실제 포맷 결과도 같이 반환
+
       const result = await execa('clang-format', [this.config.filePath]);
       return {
         tool: 'clang-format',
         success: formatCheckSuccess,
-        output: result.stdout,
+        output: formatCheckSuccess ? result.stdout : diffOutput,
+        issues
       };
     } catch (err: any) {
       return {
         tool: 'clang-format',
         success: false,
-        output: err.stdout || err.stderr || err.message,
+        output: '[clang-format] 실행 오류:\n' + (err.stdout || '') + (err.stderr ? '\n' + err.stderr : '') + (err.message ? '\n' + err.message : ''),
+        issues: []
       };
     }
   }
