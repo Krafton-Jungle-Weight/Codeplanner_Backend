@@ -10,6 +10,7 @@ export class ClangTidyScanner extends BaseScanner {
 
   async execute(): Promise<ScannerResult> {
     try {
+
       const os = require('os');
       const isMac = os.platform() === 'darwin';
       const sdkPath = isMac ? execSync('xcrun --show-sdk-path').toString().trim() : '/usr/include';
