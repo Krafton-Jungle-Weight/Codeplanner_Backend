@@ -1,5 +1,5 @@
 import { execa } from 'execa';
-import { BaseScanner, ScannerConfig, ScannerResult } from './base.scanner';
+import { BaseScanner, ScannerConfig, ScannerResult, ScannerIssue } from './base.scanner';
 import { execSync } from 'child_process';
 
 export class CppcheckScanner extends BaseScanner {
@@ -9,51 +9,66 @@ export class CppcheckScanner extends BaseScanner {
 
   async execute(): Promise<ScannerResult> {
     try {
-      // os에 따른 분기 처리 (우분투에선 sdk를 가져올 필요가 없어짐)
       const os = require('os');
       const isMac = os.platform() === 'darwin';
-      
-      const sdkPath = isMac
-      ? execSync('xcrun --show-sdk-path').toString().trim()
-      : '/usr/include'; // 리눅스 기본 경로
-            
+      const sdkPath = isMac ? execSync('xcrun --show-sdk-path').toString().trim() : '/usr/include';
+
       const result = await execa('cppcheck', [
         '--enable=all',
         '--inconclusive',
         '--std=c++17',
         '--suppress=missingIncludeSystem',
+        '--suppress=missingInclude',
         '--suppress=noExplicitConstructor',
+        '--force',
         this.config.filePath,
         '-I', `${sdkPath}/usr/include`,
-        '-I', '/usr/include',
+        '-I', '/usr/include'
       ]);
 
-      const output = result.stdout + (result.stderr ? '\n' + result.stderr : '');
+      let output = result.stdout + (result.stderr ? '\n' + result.stderr : '');
+      const issueRegex = /^(.*?):(\d+):(\d+):\s+(style|error|warning|information):\s+(.*)\s+\[(\w+)\]/;
+      const matches: ScannerIssue[] = [];
 
-      // 중요 심각도만 포함되었는지 검사
+      for (const line of output.split('\n')) {
+        const match = line.match(issueRegex);
+        if (match) {
+          matches.push({
+            file: match[1],
+            line: parseInt(match[2], 10),
+            column: parseInt(match[3], 10),
+            type: match[4],
+            message: match[5],
+            checker: match[6]
+          });
+        }
+      }
+
+      output = output
+        .split(/\r?\n/)
+        .filter(line => !line.startsWith('Checking ') && !line.startsWith("(information) Couldn't find path given by -I") && line.trim() !== '')
+        .join('\n');
+
       const hasImportantIssues = /(?:error|warning|performance|portability|style):/.test(output);
-      /*
-        * 포함되는 cppcheck 메시지 종류:
-        *
-        *  error:        치명적인 오류 (예: 문법 오류, 정의되지 않은 식별자 등)
-        *  warning:      잠재적 오류 또는 잘못된 논리 (예: 널 포인터 역참조 가능성)
-        *  performance:  성능 저하 가능성 (예: 불필요한 연산, 비효율적 반복 등)
-        *  portability:  이식성 문제 (예: 플랫폼/컴파일러 간 차이)
-        *  style:        스타일 권장 위반 (예: 미사용 변수, 명시성 부족 등)
-       */
-
 
       return {
         tool: 'cppcheck',
         success: !hasImportantIssues && result.exitCode === 0,
         output,
+        issues: matches
       };
     } catch (err: any) {
-      const output = err.stdout || err.stderr || err.message;
+      let output = err.stdout || err.stderr || err.message;
+      output = output
+        .split(/\r?\n/)
+        .filter(line => !line.startsWith('Checking ') && !line.startsWith("(information) Couldn't find path given by -I") && line.trim() !== '')
+        .join('\n');
+
       return {
         tool: 'cppcheck',
         success: false,
         output,
+        issues: []
       };
     }
   }
