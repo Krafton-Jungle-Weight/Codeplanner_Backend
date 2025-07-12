@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { User } from '../user/user.entity';
 import { ProjectMember } from './project-member.entity';
+import { Label } from '../issues/label.entity';
 
 @Entity('project')
 export class Project {
@@ -70,4 +71,7 @@ export class Project {
 
   @OneToMany(() => ProjectMember, (projectMember) => projectMember.project)
   members: ProjectMember[];
+
+  @OneToMany(() => Label, (label) => label.project)
+  labels: Label[];
 }

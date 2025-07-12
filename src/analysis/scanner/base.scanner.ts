@@ -9,10 +9,20 @@ export interface ScannerConfig {
 /*
  * 결과 출력용 
  */
+export interface ScannerIssue {
+  file: string;
+  line: number;
+  column: number;
+  type: string;
+  message: string;
+  checker: string;
+}
+
 export interface ScannerResult {
   tool: string;
   success: boolean;
   output: string;
+  issues: ScannerIssue[];
 }
 /*
  * 실제 클래스가 아닌 추상클래스

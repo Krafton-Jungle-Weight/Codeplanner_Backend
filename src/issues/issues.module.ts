@@ -11,10 +11,12 @@ import { GithubModule } from 'src/github/github.module';
 import { ProjectService } from 'src/project/project.service';
 import { NotificationModule } from 'src/notification/notification.moduel';
 import { ActivityModule } from 'src/activity/activity.module';
+import { Label } from './label.entity';
+import { IssueLabel } from './issue_label.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Issue]),
+    TypeOrmModule.forFeature([Issue, Label, IssueLabel]),
     AuthModule,
     EmailModule,
     ProjectModule,
@@ -23,7 +25,7 @@ import { ActivityModule } from 'src/activity/activity.module';
     ActivityModule,
   ],
   controllers: [IssuesController],
-  providers: [IssuesService, JwtAuthGuard,],
-  exports: [IssuesService, JwtAuthGuard,],
+  providers: [IssuesService, JwtAuthGuard],
+  exports: [IssuesService, JwtAuthGuard],
 })
 export class IssuesModule {}

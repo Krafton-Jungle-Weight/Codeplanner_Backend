@@ -177,6 +177,11 @@ export class UserService {
 
   // id로 유저 찾기
   async getUserByIdForIssue(id: string) {
+    // null, undefined, 'null' 문자열 체크
+    if (!id || id === 'null' || id === 'undefined') {
+      return null;
+    }
+
     const user = await this.userRepository.findOneBy({ id: id });
     if (!user) {
       throw new BadRequestException('존재하지 않는 유저입니다.');

@@ -12,5 +12,6 @@ export interface AnalyzeRequest {
 export interface AnalyzeResponse {
   file: string;
   cppcheck: ScannerResult; 
-  clangTidy: ScannerResult
+  clangTidy: ScannerResult;
+  clangFormat: ScannerResult;
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CppcheckScanner } from './scanner/cppcheck.scanner';
 import { ClangTidyScanner } from './scanner/clang-tidy.scanner';
+import { ClangFormatScanner } from './scanner/clang-format.scanner';
 import { ScannerConfig, ScannerResult } from './scanner/base.scanner';
 import { AnalyzeRequest, AnalyzeResponse } from './dto/analyze-request.dto';
 import { GithubService } from '../github/github.service';
@@ -17,7 +18,7 @@ export class AnalysisService {
   async analyzeFiles(
     files: AnalyzeRequest[],
   ): Promise<
-    { file: string; cppcheck: ScannerResult; clangTidy: ScannerResult }[]
+    { file: string; cppcheck: ScannerResult; clangTidy: ScannerResult; clangFormat: ScannerResult }[]
   > {
     const fs = require('fs');
     const os = require('os');
@@ -47,18 +48,21 @@ export class AnalysisService {
 
         const cppcheck = new CppcheckScanner(config);
         const clangTidy = new ClangTidyScanner(config);
+        const clangFormat = new ClangFormatScanner(config);
         /*
          * 결과의 출력 순서를 보장하는 promise.all
-         * 두개의 실행은 계속 교차해서 발생
+         * 세 개의 실행은 계속 교차해서 발생
          */
-        const [cppcheckResult, clangTidyResult] = await Promise.all([
+        const [cppcheckResult, clangTidyResult, clangFormatResult] = await Promise.all([
           cppcheck.execute(),
           clangTidy.execute(),
+          clangFormat.execute(),
         ]);
         const response: AnalyzeResponse = {
           file: file.filename,
           cppcheck: cppcheckResult,
           clangTidy: clangTidyResult,
+          clangFormat: clangFormatResult,
         }
 
         results.push(response);
@@ -139,6 +143,68 @@ export class AnalysisService {
         language: file.language as 'c' | 'cpp',
       }));
 
+    const result = await this.analyzeFiles(analyzeRequests);
+    return result;
+  }
+
+  // GitHub PR의 최근 변경사항만 분석 (중복 제거)
+  async analyzeGitHubPullRequestRecent(
+    owner: string,
+    repo: string,
+    pullNumber: number,
+    userId: string,
+  ): Promise<AnalyzeResponse[]> {
+    // GitHub에서 PR의 최근 변경된 파일들을 가져옴 (중복 제거)
+    const changedFiles = await this.githubService.getRecentChangedFilesInPullRequest(
+      owner,
+      repo,
+      pullNumber,
+      userId,
+    );
+
+    // C/C++ 파일만 필터링
+    const cppFiles = changedFiles.filter(
+      (file) => file.language === 'c' || file.language === 'cpp',
+    );
+
+    // AnalyzeRequest 형식으로 변환
+    const analyzeRequests: AnalyzeRequest[] = changedFiles
+      .filter((file) => file.language === 'c' || file.language === 'cpp')
+      .map((file) => ({
+        filename: file.filename,
+        content: file.content,
+        language: file.language as 'c' | 'cpp',
+      }));
+
+    const result = await this.analyzeFiles(analyzeRequests);
+    return result;
+  }
+
+  async analysisGitHubChangedFile(
+    owner: string,
+    repo: string,
+    sha: string,
+    file: string | undefined,
+    id: any
+  ) {
+    const changedFiles = await this.githubService.getChangedFilesWithContent(
+      owner, repo, sha, id,
+    );
+    // 1. C/C++ 파일만 필터
+    let cppFiles = changedFiles.filter(
+      (f) => f.language === 'c' || f.language === 'cpp'
+    );
+    // 2. file 파라미터가 있으면 해당 파일만 필터
+    if (file) {
+      cppFiles = cppFiles.filter(f => f.filename === file);
+    }
+    // 3. 분석 요청 생성
+    const analyzeRequests: AnalyzeRequest[] = cppFiles.map((f) => ({
+      filename: f.filename,
+      content: f.content,
+      language: f.language as 'c' | 'cpp',
+    }));
+  
     const result = await this.analyzeFiles(analyzeRequests);
     return result;
   }

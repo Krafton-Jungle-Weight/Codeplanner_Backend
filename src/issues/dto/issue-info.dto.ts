@@ -8,4 +8,5 @@ export class UpdateIssueDto {
   startDate?: Date | null;
   dueDate?: Date | null;
   tag?: string | null;
+  labels?: Array<{ id: string; name: string; color: string }>;
 }
