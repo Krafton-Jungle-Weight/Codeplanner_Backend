@@ -18,3 +18,4 @@ export class IssueLabel {
   @JoinColumn({ name: 'label_id' })
   label: Label;
 }
+ 

@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
-import { EmailService } from 'src/email/email.service';
 import { DatabaseModule } from 'src/database/database.module';
 import { User } from './user.entity';
 import { EmailVerificationToken } from 'src/email/email.entity';
 import { GithubToken } from 'src/github/github.entity';
+import { EmailModule } from 'src/email/email.module';
 
 // 인증 모듈
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
@@ -17,8 +17,10 @@ import { AuthModule } from 'src/auth/auth.module';
     DatabaseModule,
     TypeOrmModule.forFeature([User, EmailVerificationToken, GithubToken]),
     AuthModule,
+    EmailModule,
   ],
   controllers: [UserController],
-  providers: [UserService, EmailService, JwtAuthGuard], // JwtAuthGuard 인증 가드 사용
+  providers: [UserService, JwtAuthGuard], // JwtAuthGuard 인증 가드 사용
+  exports: [UserService], // UserService export 추가
 })
 export class UserModule {}
