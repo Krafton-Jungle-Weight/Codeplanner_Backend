@@ -106,6 +106,8 @@ export class NotificationService {
   }
 
   async deleteUserNotification(userId: string, notificationId: string) {
-    await this.userNotificationRepository.delete({ userId, notificationId });
+    await this.userNotificationRepository.delete(
+      {userId, notificationId}
+    )
   }
 }
