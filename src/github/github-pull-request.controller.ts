@@ -1,23 +1,14 @@
-import { Body, Controller, Get, Param, Post, UseGuards, Query, HttpException} from '@nestjs/common';
-import { Request } from 'express';
-import { GithubService } from './github.service';
-import { ProjectService } from '../project/project.service';
+import { Body, Controller, Param, Post, UseGuards, HttpException} from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { GithubToken } from './github.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from 'src/user/user.entity';
 import { CurrentUser } from 'src/auth/user.decorator';
-import { parseGitHubUrl } from './github.utils';
 import { GithubPullRequestService } from './github-pull-request.service';
 
 @Controller('github')
 export class GithubPullRequestController {
     constructor(
-        private readonly githubService: GithubService,
-        private readonly projectService: ProjectService,
         @InjectRepository(GithubToken)
-        private githubTokenRepository: Repository<GithubToken>,
         private readonly githubPullRequestService: GithubPullRequestService,
       ) {}
 
