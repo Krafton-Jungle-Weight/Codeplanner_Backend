@@ -8,6 +8,8 @@ import { User } from 'src/user/user.entity';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 import { EmailVerificationToken } from 'src/email/email.entity';
+import { ProjectMember } from 'src/project/project-member.entity';
+import { UserNotification } from 'src/notification/user-notification.entity';
 
 @Injectable()
 export class UserService {
@@ -22,6 +24,14 @@ export class UserService {
     // 이메일 인증 토큰 저장
     @InjectRepository(EmailVerificationToken)
     private emailVerificationTokenRepository: Repository<EmailVerificationToken>,
+
+    // 프로젝트 멤버 저장
+    @InjectRepository(ProjectMember)
+    private projectMemberRepository: Repository<ProjectMember>,
+
+    // 유저 알림 저장
+    @InjectRepository(UserNotification)
+    private userNotificationRepository: Repository<UserNotification>,
   ) {}
 
   PASSWORD_SALT = 10;
@@ -194,13 +204,16 @@ export class UserService {
     return this.userRepository.findOneBy({ email });
   }
 
-
-
-
-
-
-
-
-  
+  // 유저 삭제
+  async deleteUser(id: string) {
+    const user = await this.userRepository.findOneBy({ id: id });
+    if (!user) {
+      throw new BadRequestException('존재하지 않는 유저입니다.');
+    }
+    await this.userRepository.update({ id: id }, { email: 'deleted' });
+    await this.projectMemberRepository.delete({ user_id: id });
+    await this.userNotificationRepository.delete({ userId: id });
+    return { message: '유저 삭제 완료' };
+  }
 }
 

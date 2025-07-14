@@ -12,10 +12,14 @@ import { EmailModule } from 'src/email/email.module';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AuthModule } from 'src/auth/auth.module';
 
+//회원탈퇴용
+import { ProjectMember } from 'src/project/project-member.entity';
+import { UserNotification } from 'src/notification/user-notification.entity';
+
 @Module({
   imports: [
     DatabaseModule,
-    TypeOrmModule.forFeature([User, EmailVerificationToken, GithubToken]),
+    TypeOrmModule.forFeature([User, EmailVerificationToken, GithubToken, ProjectMember, UserNotification]),
     AuthModule,
     EmailModule,
   ],

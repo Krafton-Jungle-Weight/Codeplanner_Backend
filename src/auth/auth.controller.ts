@@ -49,7 +49,9 @@ export class AuthController {
     if (!user) {
       throw new UnprocessableEntityException('이메일이 없습니다. ');
     }
-
+    if (email === 'deleted') {
+      throw new UnprocessableEntityException('이미 삭제된 유저입니다.');
+    }
     const isAuth = await bcrypt.compare(password, user.password_hash);
 
     if (!isAuth) {

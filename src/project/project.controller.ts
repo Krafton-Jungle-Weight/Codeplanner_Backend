@@ -301,4 +301,9 @@ export class ProjectController {
   async deleteLabel(@Param('projectId') projectId: string, @Param('labelId') labelId: string) {
     return this.projectService.deleteLabel(projectId, labelId);
   }
+
+  @Get(':projectId/labels-count')
+  async getLabelCount(@Param('projectId') projectId: string) {
+    return this.projectService.getLabelCount(projectId);
+  }
 }

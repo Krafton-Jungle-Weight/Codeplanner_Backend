@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -114,5 +115,11 @@ export class UserController {
     }
 
     return await this.userService.getUserByIdForIssue(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('/unregister')
+  async deleteUser(@CurrentUser() user: any) {
+    return await this.userService.deleteUser(user.id);
   }
 }
