@@ -196,6 +196,11 @@ export class IssuesService {
           newValue: cleanAssigneeId,
         });
         originalIssue.assigneeId = cleanAssigneeId;
+        this.emailService.sendIssueAllocateEmail(
+          cleanAssigneeId,
+          originalIssue.title,
+          projectId,
+        );
       }
     }
     if (dto.reporterId !== undefined) {

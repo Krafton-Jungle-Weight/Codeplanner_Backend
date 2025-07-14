@@ -431,4 +431,23 @@ export class ProjectService {
     });
     return members;
   }
+
+  // 각 라벨별로 연결된 이슈의 개수를 구해서 반환
+  async getLabelCount(projectId: string) {
+    // 라벨 목록 조회
+    const labels = await this.labelRepo.find({ where: { projectId } });
+
+    // 각 라벨별로 연결된 이슈 개수 조회
+    const result: { id: string; name: string; count: number }[] = [];
+    for (const label of labels) {
+      const count = await this.issueLabelRepo.count({ where: { labelId: label.id } });
+      result.push({
+        id: label.id,
+        name: label.name,
+        count,
+      });
+    }
+    console.log('result', result);
+    return result;
+  }
 }
