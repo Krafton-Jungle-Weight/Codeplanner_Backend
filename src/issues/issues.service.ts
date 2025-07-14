@@ -196,6 +196,11 @@ export class IssuesService {
           newValue: cleanAssigneeId,
         });
         originalIssue.assigneeId = cleanAssigneeId;
+        this.emailService.sendIssueAllocateEmail(
+          cleanAssigneeId,
+          originalIssue.title,
+          projectId,
+        );
       }
     }
     if (dto.reporterId !== undefined) {
@@ -305,15 +310,42 @@ export class IssuesService {
     return updatedIssue;
   }
 
+  // async getIssues(projectId: string) {
+  //   console.log('getIssues projectId', projectId);
+  //   // 이슈 목록 조회
+  //   const issues = await this.issueRepository.find({
+  //     where: { projectId },
+  //     order: { position: 'ASC' },
+  //   });
+
+  //   // 각 이슈에 연결된 라벨 정보 조회
+  //   const issuesWithLabels = await Promise.all(
+  //     issues.map(async (issue) => {
+  //       // issue_label과 label 조인하여 해당 이슈의 라벨 목록 조회
+  //       const issueLabels = await this.issueLabelRepository.find({
+  //         where: { issueId: issue.id },
+  //         relations: ['label'],
+  //       });
+  //       // label 정보만 추출
+  //       const labels = issueLabels
+  //         .map((il) => il.label)
+  //         .filter((label) => !!label);
+  //       return {
+  //         ...issue,
+  //         labels,
+  //       };
+  //     }),
+  //   );
+  //   return issuesWithLabels;
+  // }
+
   async getIssuesCurrentUser(
     userId: string,
     projectId: string,
-  ): Promise<Issue[]> {
-    return this.issueRepository
-      .createQueryBuilder('issue')
-      .where('issue.assigneeId = :userId', { userId })
-      .andWhere('issue.projectId = :projectId', { projectId })
-      .getMany();
+  ) {
+    const issues = await this.getIssues(projectId);
+    console.log('issues', issues);
+    return issues.filter((issue) => issue.assigneeId === userId);
   }
 
   async getIssuesCurrentUserCount(
