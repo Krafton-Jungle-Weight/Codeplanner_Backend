@@ -21,6 +21,8 @@
     "dev": "npm run start:dev"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.844.0",
+    "@aws-sdk/credential-provider-node": "^3.844.0",
     "@google/genai": "^1.8.0",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.0.1",
