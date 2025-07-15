@@ -554,7 +554,7 @@ export class SummaryaiService {
       const response = await axios.post(url, body, {
         headers: { 'Content-Type': 'application/json' }
       });
-      return response.data.candidates?.[0]?.content?.parts?.[0]?.text || '요약 생성 실패';
+      return response.data.candidates?.[0]?.content?.parts?.[0]?.text || '외부 AI 분석 서버가 일시적으로 응답하지 않습니다. 잠시 후 다시 시도해 주세요.';
     } catch (e) {
       console.error('Gemini 요약 API 호출 실패:', e);
       return '요약 생성 중 오류 발생';
@@ -682,7 +682,7 @@ export class SummaryaiService {
       const response = await axios.post(url, body, {
         headers: { 'Content-Type': 'application/json' }
       });
-      return response.data.candidates?.[0]?.content?.parts?.[0]?.text || '피드백 요약 생성 실패';
+      return response.data.candidates?.[0]?.content?.parts?.[0]?.text || '외부 AI 분석 서버가 일시적으로 응답하지 않습니다. 잠시 후 다시 시도해 주세요.';
     } catch (e) {
       console.error('Gemini 피드백 API 호출 실패:', e);
       return '피드백 요약 생성 중 오류 발생';
