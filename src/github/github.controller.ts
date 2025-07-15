@@ -456,4 +456,18 @@ export class GithubController {
       userId,
     );
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('repos/commit/:owner/:repo/:sha')
+  async getFileContents(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('sha') sha: string,
+    @CurrentUser() user: any,
+    @Query('file') file?: string,
+  ) {
+    return await this.githubService.getFileContents(
+      owner, repo, sha, file ?? '', user.id
+    );
+  }
 }
