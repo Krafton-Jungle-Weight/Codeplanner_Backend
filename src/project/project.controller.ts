@@ -122,7 +122,7 @@ export class ProjectController {
   @Get(':id/members')
   @UseGuards(JwtAuthGuard)
   async getProjectMembers(@Param('id') id: string) {
-    // console.log('getProjectMembers id', id);
+    console.log('getProjectMembers id', id);
     return this.projectService.getMembers(id);
   }
 
