@@ -527,7 +527,7 @@ export class IssuesService {
         }
       }
 
-      // 알림 생성
+      // 이슈 알림 생성
       if (cleanAssigneeId) {
         const projectName = await this.projectService.getProjectName(projectId);
         await this.notificationService.createNotification(
@@ -548,6 +548,8 @@ export class IssuesService {
           projectId: projectId,
         });
       }
+
+      
 
       // 백로그에 이슈 생성시 프로젝트의 모든 인원에게 알람.
       if (dto.status === 'BACKLOG') {
