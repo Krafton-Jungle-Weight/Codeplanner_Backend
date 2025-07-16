@@ -47,6 +47,11 @@ export class NotificationService {
       };
     });
 
+    // 최신순 정렬 (createdAt 내림차순)
+    notificationsWithReadStatus.sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
     return notificationsWithReadStatus;
   }
 
@@ -65,7 +70,7 @@ export class NotificationService {
       order: { createdAt: 'DESC' },
     });
 
-    return notifications.map((n) => ({
+    const notificationsArr = notifications.map((n) => ({
       type: n.type,
       notificationId: n.id,
       issueId: n.payload?.issueId,
@@ -74,6 +79,13 @@ export class NotificationService {
       projectId: n.payload?.projectId,
       createdAt: n.createdAt,
     }));
+
+    // 최신순 정렬 (createdAt 내림차순)
+    notificationsArr.sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    return notificationsArr;
   }
 
   async createNotification(userId: string, type: string, payload: any) {
@@ -81,6 +93,7 @@ export class NotificationService {
     const notification = this.notificationRepository.create({
       type,
       payload,
+      createdAt: new Date(), // 현재 시간 명시적으로 입력
     });
     const savedNotification =
       await this.notificationRepository.save(notification);
@@ -106,8 +119,6 @@ export class NotificationService {
   }
 
   async deleteUserNotification(userId: string, notificationId: string) {
-    await this.userNotificationRepository.delete(
-      {userId, notificationId}
-    )
+    await this.userNotificationRepository.delete({ userId, notificationId });
   }
 }
