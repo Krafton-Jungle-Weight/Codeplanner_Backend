@@ -546,6 +546,7 @@ export class SummaryaiService {
     if (!apiKey) {
       return 'Gemini API 키가 설정되어 있지 않습니다.';
     }
+    console.log('[Gemini 요약 프롬프트]', prompt);
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     const body = {
       contents: [{ parts: [{ text: prompt }] }]
@@ -674,6 +675,7 @@ export class SummaryaiService {
     if (!apiKey) {
       return 'Gemini 피드백 API 키가 설정되어 있지 않습니다.';
     }
+    console.log('[Gemini 피드백 프롬프트]', prompt);
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     const body = {
       contents: [{ parts: [{ text: prompt }] }]
