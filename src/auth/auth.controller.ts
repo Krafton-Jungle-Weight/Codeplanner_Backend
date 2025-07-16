@@ -162,4 +162,18 @@ export class AuthController {
       message: '비밀번호 재설정 완료',
     });
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(`/change-password`)
+  async changePassword(@CurrentUser() user: User, @Body() input: { password: string, password_again: string }, @Res() res: Response){
+    const { password, password_again } = input;
+    if(password !== password_again){
+      throw new UnprocessableEntityException('비밀번호가 일치하지 않습니다.');
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await this.userRepository.update({ id: user.id }, { password_hash: hashedPassword });
+    return res.status(200).json({
+      message: '비밀번호 변경 완료',
+    });
+  }
 }

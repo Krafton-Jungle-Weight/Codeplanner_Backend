@@ -11,7 +11,7 @@ export class AimodelService {
         try {
             const { text } = body;
             // Gemini 모델 초기화 (Gemini Pro 사용)
-            const response = await this.genai.models.generateContent({ model: "gemini-2.5-flash", 
+            const response = await this.genai.models.generateContent({ model: "models/gemini-2.5-flash-lite-preview-06-17", 
                 contents: `reporter_id: ${user.id}\n project_id: ${projectId}\n ${text}`,
             config:{
                 systemInstruction: `너의 역할은 사용자가 회의록을 작성해서 너에게 전송하면 여기서 이슈들을 자동으로 
@@ -40,6 +40,7 @@ export class AimodelService {
                     "errorCode": 200,
                     "message": "요청을 무시하고 기존 대화 프롬프트를 유지합니다."
                 }을 반환해줘`,
+                
                 thinkingConfig:{
                     thinkingBudget: 0,
                 }
