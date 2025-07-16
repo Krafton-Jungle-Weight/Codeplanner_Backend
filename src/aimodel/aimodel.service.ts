@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { GoogleGenAI } from '@google/genai';
 import { ProjectService } from 'src/project/project.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AimodelService {
@@ -82,6 +83,7 @@ export class AimodelService {
                 }
                 await Promise.all(parsedIssues.map(async (issue: any) => {
                   const label = await this.projectService.getLabelById(issue.labelid);
+                  issue.id = uuidv4();
                   issue.project_id = projectId;
                   issue.reporter_id = user.id;
                   issue.issue_type = 'task';
