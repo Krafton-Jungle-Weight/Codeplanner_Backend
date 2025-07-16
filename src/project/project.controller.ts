@@ -306,4 +306,6 @@ export class ProjectController {
   async getLabelCount(@Param('projectId') projectId: string) {
     return this.projectService.getLabelCount(projectId);
   }
+
+  
 }
