@@ -13,13 +13,6 @@ export class CppcheckScanner extends BaseScanner {
       const isMac = os.platform() === 'darwin';
       const sdkPath = isMac ? execSync('xcrun --show-sdk-path').toString().trim() : '/usr/include';
 
-      const result = await execa('cppcheck', [
-        '--enable=style,performance',
-        '--std=c++17',
-        '--suppress=missingIncludeSystem',
-        this.config.filePath,
-        '-I', `${sdkPath}/usr/include`,
-      ]); 
       // const result = await execa('cppcheck', [
       //   '--enable=all',
       //   '--inconclusive',
@@ -32,6 +25,13 @@ export class CppcheckScanner extends BaseScanner {
       //   '-I', `${sdkPath}/usr/include`,
       //   '-I', '/usr/include'
       // ]);
+      const result = await execa('cppcheck', [
+        '--enable=style,performance',
+        '--std=c++17',
+        '--suppress=missingIncludeSystem',
+        this.config.filePath,
+        '-I', `${sdkPath}/usr/include`,
+      ]); 
 
       let output = result.stdout + (result.stderr ? '\n' + result.stderr : '');
       const issueRegex = /^(.*?):(\d+):(\d+):\s+(style|error|warning|information):\s+(.*)\s+\[(\w+)\]/;
