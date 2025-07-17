@@ -144,9 +144,7 @@ export class IssuesService {
       where: { issueId: issueId },
       relations: ['label'],
     });
-    const labels = issueLabels
-      .map((il) => il.label)
-      .filter((label) => !!label);
+    const labels = issueLabels.map((il) => il.label).filter((label) => !!label);
 
     return {
       title: issue.title,
@@ -207,6 +205,30 @@ export class IssuesService {
         oldValue: originalIssue.status,
         newValue: dto.status,
       });
+      // status가 BACKLOG로 변경될 때 알림 생성
+      if (dto.status === 'BACKLOG') {
+        const projectMembers =
+          await this.projectService.getProjectMembers(projectId);
+        const projectName = await this.projectService.getProjectName(projectId);
+        for (const member of projectMembers) {
+          try {
+            await this.notificationService.createNotification(
+              member.user_id,
+              'issue_created_backlog',
+              {
+                issueId: originalIssue.id,
+                issueTitle: dto.title ?? originalIssue.title,
+                projectName: projectName,
+                projectId: projectId,
+                createdBy: userId,
+                // createdByDisplayName은 알 수 없으므로 생략 또는 필요시 추가 조회
+              },
+            );
+          } catch (error) {
+            console.error(`멤버 ${member.user_id}에게 알림 생성 실패:`, error);
+          }
+        }
+      }
       originalIssue.status = dto.status;
     }
 
@@ -225,6 +247,21 @@ export class IssuesService {
           originalIssue.title,
           projectId,
         );
+        // 알림 생성: assignee 변경 시
+        if (cleanAssigneeId) {
+          const projectName =
+            await this.projectService.getProjectName(projectId);
+          await this.notificationService.createNotification(
+            cleanAssigneeId,
+            'issue_created_assignee',
+            {
+              issueId: originalIssue.id,
+              issueTitle: dto.title ?? originalIssue.title,
+              projectName: projectName,
+              projectId: projectId,
+            },
+          );
+        }
       }
     }
     if (dto.reporterId !== undefined) {
@@ -270,17 +307,17 @@ export class IssuesService {
         relations: ['label'],
       });
 
-      const existingLabelIds = existingLabels.map(il => il.label.id);
-      const newLabelIds = dto.labels.map(label => label.id);
+      const existingLabelIds = existingLabels.map((il) => il.label.id);
+      const newLabelIds = dto.labels.map((label) => label.id);
 
       // 제거할 라벨들
-      const labelsToRemove = existingLabels.filter(il => 
-        !newLabelIds.includes(il.label.id)
+      const labelsToRemove = existingLabels.filter(
+        (il) => !newLabelIds.includes(il.label.id),
       );
 
       // 추가할 라벨들
-      const labelsToAdd = dto.labels.filter(label => 
-        !existingLabelIds.includes(label.id)
+      const labelsToAdd = dto.labels.filter(
+        (label) => !existingLabelIds.includes(label.id),
       );
 
       // 라벨 관계 삭제
@@ -290,11 +327,11 @@ export class IssuesService {
 
       // 라벨 관계 추가
       if (labelsToAdd.length > 0) {
-        const newIssueLabels = labelsToAdd.map(label => 
+        const newIssueLabels = labelsToAdd.map((label) =>
           this.issueLabelRepository.create({
             issueId: issueId,
             labelId: label.id,
-          })
+          }),
         );
         await this.issueLabelRepository.save(newIssueLabels);
       }
@@ -305,12 +342,11 @@ export class IssuesService {
           field: 'labels',
           oldValue: existingLabelIds,
           newValue: newLabelIds,
-          removedLabels: labelsToRemove.map(il => il.label.name),
-          addedLabels: labelsToAdd.map(label => label.name),
+          removedLabels: labelsToRemove.map((il) => il.label.name),
+          addedLabels: labelsToAdd.map((label) => label.name),
         });
       }
     }
-    
 
     const updatedIssue = await this.issueRepository.save(originalIssue);
 
@@ -363,10 +399,7 @@ export class IssuesService {
   //   return issuesWithLabels;
   // }
 
-  async getIssuesCurrentUser(
-    userId: string,
-    projectId: string,
-  ) {
+  async getIssuesCurrentUser(userId: string, projectId: string) {
     const issues = await this.getIssues(projectId);
     console.log('issues', issues);
     return issues.filter((issue) => issue.assigneeId === userId);
@@ -551,7 +584,7 @@ export class IssuesService {
         }
       }
 
-      // 알림 생성
+      // 이슈 알림 생성
       if (cleanAssigneeId) {
         const projectName = await this.projectService.getProjectName(projectId);
         await this.notificationService.createNotification(

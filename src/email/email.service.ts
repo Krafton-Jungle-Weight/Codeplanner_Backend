@@ -28,8 +28,8 @@ export class EmailService {
     this.transporter = nodemailer.createTransport({
       service: 'Gmail',
       auth: {
-        user: 'myong2404@gmail.com',
-        pass: 'vviu hmcq jgif gagg',
+        user: process.env.GMAIL_APP_MAIL,
+        pass: process.env.GMAIL_APP_KEY,
       },
     });
   }

@@ -27,6 +27,7 @@ export class AnalysisService {
     const results: AnalyzeResponse[] = [];
     const tempFiles: string[] = [];
 
+    console.time('analyzeFiles-total');
     try {
       for (const file of files) {
         // 파일명에서 경로 구분자 제거하고 안전한 파일명 생성
@@ -53,11 +54,13 @@ export class AnalysisService {
          * 결과의 출력 순서를 보장하는 promise.all
          * 세 개의 실행은 계속 교차해서 발생
          */
+        console.time(`analyze-file-${file.filename}`);
         const [cppcheckResult, clangTidyResult, clangFormatResult] = await Promise.all([
           cppcheck.execute(),
           clangTidy.execute(),
           clangFormat.execute(),
         ]);
+        console.timeEnd(`analyze-file-${file.filename}`);
         const response: AnalyzeResponse = {
           file: file.filename,
           cppcheck: cppcheckResult,
@@ -79,6 +82,7 @@ export class AnalysisService {
           }
         } catch (cleanupError) {}
       }
+      console.timeEnd('analyzeFiles-total');
     }
   }
 
@@ -89,6 +93,7 @@ export class AnalysisService {
     commitSha: string,
     userId: string,
   ): Promise<AnalyzeResponse[]> {
+    console.time('github-fetch');
     // GitHub에서 커밋의 변경된 파일들을 가져옴
     const changedFiles = await this.githubService.getChangedFilesWithContent(
       owner,
@@ -96,6 +101,7 @@ export class AnalysisService {
       commitSha,
       userId,
     );
+    console.timeEnd('github-fetch');
 
     // C/C++ 파일만 필터링
     const cppFiles = changedFiles.filter(
@@ -111,7 +117,10 @@ export class AnalysisService {
         language: file.language as 'c' | 'cpp',
       }));
 
-    return this.analyzeFiles(analyzeRequests);
+    console.time('analyzeFiles-in-commit');
+    const result = await this.analyzeFiles(analyzeRequests);
+    console.timeEnd('analyzeFiles-in-commit');
+    return result;
   }
 
   // GitHub PR의 파일들을 분석
@@ -121,6 +130,7 @@ export class AnalysisService {
     pullNumber: number,
     userId: string,
   ): Promise<AnalyzeResponse[]> {
+    console.time('github-fetch-pr');
     // GitHub에서 PR의 변경된 파일들을 가져옴
     const changedFiles = await this.githubService.getFilesChangedInPullRequest(
       owner,
@@ -128,6 +138,7 @@ export class AnalysisService {
       pullNumber,
       userId,
     );
+    console.timeEnd('github-fetch-pr');
 
     // C/C++ 파일만 필터링
     const cppFiles = changedFiles.filter(
@@ -143,7 +154,9 @@ export class AnalysisService {
         language: file.language as 'c' | 'cpp',
       }));
 
+    console.time('analyzeFiles-in-pr');
     const result = await this.analyzeFiles(analyzeRequests);
+    console.timeEnd('analyzeFiles-in-pr');
     return result;
   }
 
@@ -154,6 +167,7 @@ export class AnalysisService {
     pullNumber: number,
     userId: string,
   ): Promise<AnalyzeResponse[]> {
+    console.time('github-fetch-pr-recent');
     // GitHub에서 PR의 최근 변경된 파일들을 가져옴 (중복 제거)
     const changedFiles = await this.githubService.getRecentChangedFilesInPullRequest(
       owner,
@@ -161,6 +175,7 @@ export class AnalysisService {
       pullNumber,
       userId,
     );
+    console.timeEnd('github-fetch-pr-recent');
 
     // C/C++ 파일만 필터링
     const cppFiles = changedFiles.filter(
@@ -176,7 +191,9 @@ export class AnalysisService {
         language: file.language as 'c' | 'cpp',
       }));
 
+    console.time('analyzeFiles-in-pr-recent');
     const result = await this.analyzeFiles(analyzeRequests);
+    console.timeEnd('analyzeFiles-in-pr-recent');
     return result;
   }
 
@@ -187,9 +204,11 @@ export class AnalysisService {
     file: string | undefined,
     id: any
   ) {
+    console.time('github-fetch-changed-file');
     const changedFiles = await this.githubService.getChangedFilesWithContent(
       owner, repo, sha, id,
     );
+    console.timeEnd('github-fetch-changed-file');
     // 1. C/C++ 파일만 필터
     let cppFiles = changedFiles.filter(
       (f) => f.language === 'c' || f.language === 'cpp'
@@ -204,8 +223,9 @@ export class AnalysisService {
       content: f.content,
       language: f.language as 'c' | 'cpp',
     }));
-  
+    console.time('analyzeFiles-in-changed-file');
     const result = await this.analyzeFiles(analyzeRequests);
+    console.timeEnd('analyzeFiles-in-changed-file');
     return result;
   }
 }

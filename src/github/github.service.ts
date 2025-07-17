@@ -8,6 +8,7 @@ import { HttpService } from '@nestjs/axios';
 import axios from 'axios';
 import { detectLanguage } from './github.utils';
 import { ChangedFileWithContent } from './dto/github.dto';
+import * as parseLinkHeader from 'parse-link-header';
 
 @Injectable()
 export class GithubService {
@@ -883,6 +884,16 @@ export class GithubService {
     return tokenEntity.user_id;
   }
 
+  async getGithubLoginByUserId(userId: string): Promise<string | null> {
+    const tokenEntity = await this.githubTokenRepository.findOne({
+      where: { user_id: userId, provider: 'github' },
+    });
+    if (!tokenEntity) return null;
+    if (tokenEntity.github_login) return tokenEntity.github_login;
+    // 만약 github_login이 없다면 provider_user_id를 반환(대부분 login임)
+    return tokenEntity.provider_user_id || null;
+  }
+
   // PR 기준으로 최근 변경사항만 가져오기 (중복 제거)
   async getRecentChangedFilesInPullRequest(
     owner: string,
@@ -980,5 +991,101 @@ export class GithubService {
     }
 
     return results;
+  }
+
+  /**
+   * summaryai 전용: 모든 PR(state=all) 반환
+   */
+  async getAllPullsForSummaryAI(owner: string, repo: string, userId: string) {
+    const url = `${this.githubApiUrl}/repos/${owner}/${repo}/pulls?state=all`;
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
+    return response?.data;
+  }
+
+  /**
+   * summaryai 전용: 모든 커밋 반환(필요시 추가 옵션 가능)
+   */
+  async getAllCommitsForSummaryAI(owner: string, repo: string, userId: string, sha?: string) {
+    let url = `${this.githubApiUrl}/repos/${owner}/${repo}/commits`;
+    if (sha) {
+      url += `?sha=${encodeURIComponent(sha)}`;
+    }
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
+    return response?.data;
+  }
+
+  /**
+   * 깃허브 저장소의 전체 커밋 개수만 반환 (REST API, per_page=1, Link 헤더 활용)
+   */
+  async getTotalCommitCount(owner: string, repo: string, userId: string): Promise<number> {
+    const url = `${this.githubApiUrl}/repos/${owner}/${repo}/commits?per_page=1`;
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
+    console.log('[getTotalCommitCount] status:', response?.status);
+    console.log('[getTotalCommitCount] headers:', response?.headers);
+    console.log('[getTotalCommitCount] data:', response?.data);
+    const link = response?.headers?.link;
+    console.log('[getTotalCommitCount] link:', link);
+    if (link) {
+      const parsed = parseLinkHeader(link);
+      console.log('[getTotalCommitCount] parsed link:', parsed);
+      if (parsed && parsed.last && parsed.last.page) {
+        return parseInt(parsed.last.page, 10);
+      }
+    }
+    // Link 헤더가 없으면 커밋이 1개 이하임
+    return Array.isArray(response?.data) ? response.data.length : 0;
+  }
+
+  /**
+   * 깃허브 저장소의 전체 PR 개수만 반환 (REST API, per_page=1, Link 헤더 활용)
+   */
+  async getTotalPullRequestCount(owner: string, repo: string, userId: string): Promise<number> {
+    const url = `${this.githubApiUrl}/repos/${owner}/${repo}/pulls?state=all&per_page=1`;
+    const response = await this.httpService
+      .get(url, { headers: await this.getHeaders(userId) })
+      .toPromise();
+    console.log('[getTotalPullRequestCount] status:', response?.status);
+    console.log('[getTotalPullRequestCount] headers:', response?.headers);
+    console.log('[getTotalPullRequestCount] data:', response?.data);
+    const link = response?.headers?.link;
+    console.log('[getTotalPullRequestCount] link:', link);
+    if (link) {
+      const parsed = parseLinkHeader(link);
+      console.log('[getTotalPullRequestCount] parsed link:', parsed);
+      if (parsed && parsed.last && parsed.last.page) {
+        return parseInt(parsed.last.page, 10);
+      }
+    }
+    // Link 헤더가 없으면 PR이 1개 이하임
+    return Array.isArray(response?.data) ? response.data.length : 0;
+  }
+
+  async getFileContents(
+    owner: string,
+    repo: string,
+    sha: string,
+    filePath: string,
+    userId: string,
+  ): Promise<{ content: string }> {
+    const headers = await this.getHeaders(userId);
+    const contentUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/contents/${filePath}?ref=${sha}`;
+    try {
+      const contentRes = await this.httpService.get(contentUrl, { headers }).toPromise();
+      const encoded = contentRes?.data?.content;
+      if (!encoded) {
+        throw new Error('파일 내용을 찾을 수 없습니다.');
+      }
+      const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+      return { content: decoded };
+    } catch (err) {
+      console.error(`파일 ${filePath} 읽기 실패`, err.message);
+      throw new Error(`파일 ${filePath} 읽기 실패: ${err.message}`);
+    }
   }
 }

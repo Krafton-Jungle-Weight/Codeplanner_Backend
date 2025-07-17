@@ -46,7 +46,7 @@ export class GithubWebhookController {
     }
 
     return this.githubWebhookService.getCommits(issueId, pageNum, limitNum);
-  }
+                  }
 
   /**
    * 무한스크롤을 위한 커밋 목록 조회
@@ -59,7 +59,6 @@ export class GithubWebhookController {
     @Query('limit') limit: string = '10',
   ) {
     const limitNum = parseInt(limit, 10) || 10;
-    console.log("areyoucall")
     if (limitNum < 1 || limitNum > 100) {
       throw new Error('limit은 1 이상 100 이하여야 합니다.');
     }
