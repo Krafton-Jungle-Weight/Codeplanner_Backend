@@ -11,8 +11,10 @@ import {
 import { IssuesService } from './issues.service';
 import { CreateIssueDto, ReorderIssuesDto } from './issues-update.dto';
 import { UpdateIssueDto } from './dto/issue-info.dto';
+import { AssignReviewersDto, ReviewDto, RejectReviewDto } from './dto/reviewer.dto';
 import { Issue } from './issues.entity';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { ViewerRoleGuard } from 'src/auth/viewer-role.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
 import { User } from 'src/user/user.entity';
 
@@ -22,11 +24,11 @@ export class IssuesController {
 
   @UseGuards(JwtAuthGuard)
   @Get('/:projectId/issues')
-  getIssues(@Param('projectId') projectId: string) {
+  getIssues(@Param('projectId') projectId: string): Promise<any[]> {
     return this.issuesService.getIssues(projectId);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ViewerRoleGuard)
   @Patch('/:projectId/issues/updateOrder')
   async updateIssueOrderAndStatus(
     @Param('projectId') projectId: string,
@@ -48,7 +50,7 @@ export class IssuesController {
     return { success: 'Issue order and status updated successfully' };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ViewerRoleGuard)
   @Post('/:projectId/issues/create')
   async createIssue(
     @Param('projectId') projectId: string,
@@ -79,7 +81,7 @@ export class IssuesController {
   getMyIssue(
     @CurrentUser() user: any,
     @Param('projectId') projectId: string,
-  ): Promise<Issue[]> {
+  ): Promise<any[]> {
     return this.issuesService.getIssuesCurrentUser(user.id, projectId);
   }
 
@@ -91,7 +93,7 @@ export class IssuesController {
     return this.issuesService.findIssueById(issueId, projectId);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ViewerRoleGuard)
   @Patch('/:projectId/:issueId')
   updateIssueInfo(
     @Body() IssueInfoDto: UpdateIssueDto,
@@ -107,7 +109,7 @@ export class IssuesController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ViewerRoleGuard)
   @Delete('/:projectId/issues/:issueId')
   deleteIssue(
     @Param('issueId') issueId: string,
@@ -117,7 +119,7 @@ export class IssuesController {
     return this.issuesService.deleteIssue(issueId, projectId, user.id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ViewerRoleGuard)
   @Post('/issues/:id/update-dates')
   async updateIssueDates(
     @Param('id') id: string,
@@ -136,7 +138,7 @@ export class IssuesController {
   }
 
   // 이슈 업데이트 (issue detail)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ViewerRoleGuard)
   @Patch('/issues/:projectId/:issueId')
   async updateIssue(
     @Param('issueId') issueId: string,
@@ -145,5 +147,52 @@ export class IssuesController {
     @CurrentUser() user: User,
   ) {
     return this.issuesService.updateIssueInfo(dto, projectId, issueId, user.id);
+  }
+
+  // 리뷰어 지정
+  @UseGuards(JwtAuthGuard, ViewerRoleGuard)
+  @Post('/:projectId/issues/:issueId/assign-reviewers')
+  async assignReviewers(
+    @Param('issueId') issueId: string,
+    @Param('projectId') projectId: string,
+    @Body() dto: AssignReviewersDto,
+  ) {
+    return this.issuesService.assignReviewers(issueId, projectId, dto);
+  }
+
+  // 리뷰 승인
+  @UseGuards(JwtAuthGuard, ViewerRoleGuard)
+  @Post('/:projectId/issues/:issueId/review/approve')
+  async approveReview(
+    @Param('issueId') issueId: string,
+    @Param('projectId') projectId: string,
+    @Body() dto: ReviewDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.issuesService.approveReview(issueId, projectId, user.id, dto);
+  }
+
+  // 리뷰 거부
+  @UseGuards(JwtAuthGuard, ViewerRoleGuard)
+  @Post('/:projectId/issues/:issueId/review/reject')
+  async rejectReview(
+    @Param('issueId') issueId: string,
+    @Param('projectId') projectId: string,
+    @Body() dto: RejectReviewDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.issuesService.rejectReview(issueId, projectId, user.id, dto);
+  }
+
+  // 브랜치 생성
+  @UseGuards(JwtAuthGuard, ViewerRoleGuard)
+  @Post('/:projectId/issues/:issueId/create-branch')
+  async createBranchForIssue(
+    @Param('issueId') issueId: string,
+    @Param('projectId') projectId: string,
+    @Body() dto: { issueTitle: string; branchName?: string },
+    @CurrentUser() user: User,
+  ) {
+    return this.issuesService.createBranchForIssue(projectId, dto.issueTitle, user.id, dto.branchName);
   }
 }
