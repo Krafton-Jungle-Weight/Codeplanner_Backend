@@ -39,6 +39,7 @@
     "date-fns": "^2.28.0",
     "execa": "^9.6.0",
     "headers": "^0.9.6",
+    "js-yaml": "^4.1.0",
     "nodemailer": "^7.0.3",
     "octokit": "^5.0.3",
     "parse-link-header": "^2.0.0",
@@ -46,7 +47,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1",
-    "typeorm": "^0.3.25"
+    "typeorm": "^0.3.25",
+    "yaml": "^2.8.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -59,6 +61,7 @@
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.7",
     "@types/nodemailer": "^6.4.17",
     "@types/supertest": "^6.0.2",
