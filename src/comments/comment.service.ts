@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { CreateDateColumn, Repository } from 'typeorm';
 import { Comment } from './comment.entity';
 import { CreateCommentDto, UpdateCommentDto } from './comment.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -67,6 +67,25 @@ export class CommentService {
     });
 
     return this.commentRepository.save(comment);
+  }
+
+  async getCommentsSortByDate(projectId: string, issueId: string) {
+    const comments = await this.commentRepository.find({
+      where: { issue: { id: issueId } },
+      relations: ['author'],
+      order: {createdAt: 'DESC'},
+    });
+
+    // display_name을 포함한 결과로 변환
+    return comments.map((comment) => ({
+      id: comment.id,
+      issueId: comment.issueId,
+      authorId: comment.authorId,
+      content: comment.content,
+      createdAt: comment.createdAt,
+      updatedAt: comment.updatedAt,
+      displayName: comment.author?.display_name,
+    }));
   }
 
   async getComments(projectId: string, issueId: string) {
