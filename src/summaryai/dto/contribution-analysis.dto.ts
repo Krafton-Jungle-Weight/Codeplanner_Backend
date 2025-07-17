@@ -15,6 +15,12 @@ export class ActivityData {
   status?: string;
   type: 'issue' | 'pr' | 'commit' | 'comment';
   author: string;
+  // 대표 이슈/커밋 선정을 위한 확장 필드 (optional)
+  commentCount?: number;
+  labels?: string[];
+  participantCount?: number;
+  priority?: string;
+  dueDate?: Date;
 }
 
 export class ContributionStats {
