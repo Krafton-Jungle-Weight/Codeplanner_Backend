@@ -41,6 +41,9 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 .env.local
+.env.development
+.env.production
+
 
 # temp directory
 .temp
@@ -58,7 +61,3 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # sonar
 sonar-project.properties
 .scannerwork
-
-# 깃허브 배포 설정 파일
-.github
-*.github
