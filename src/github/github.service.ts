@@ -9,6 +9,7 @@ import axios from 'axios';
 import { detectLanguage } from './github.utils';
 import { ChangedFileWithContent } from './dto/github.dto';
 import * as parseLinkHeader from 'parse-link-header';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class GithubService {
@@ -18,6 +19,7 @@ export class GithubService {
     private readonly httpService: HttpService,
     @InjectRepository(GithubToken)
     private githubTokenRepository: Repository<GithubToken>,
+    private readonly userService: UserService,
   ) {}
 
   private async getHeaders(userId: string) {
@@ -1087,5 +1089,93 @@ export class GithubService {
       console.error(`파일 ${filePath} 읽기 실패`, err.message);
       throw new Error(`파일 ${filePath} 읽기 실패: ${err.message}`);
     }
+  }
+
+  /**
+   * 전체 커밋 중 내 커밋만 반환 (페이지네이션, Link 헤더 기반)
+   */
+  async getAllMyCommits(owner: string, repo: string, userId: string): Promise<any[]> {
+    const githubLogin = await this.getGithubLoginByUserId(userId);
+    const userEmail = (await this.userService.myPage(userId))?.email;
+    const perPage = 100;
+    let allCommits: any[] = [];
+    let url = `${this.githubApiUrl}/repos/${owner}/${repo}/commits?per_page=${perPage}&page=1`;
+    let hasNext = true;
+    let pageCount = 1;
+    while (hasNext) {
+      const response = await this.httpService
+        .get(url, { headers: await this.getHeaders(userId) })
+        .toPromise();
+      const commits = response?.data;
+      console.log(`[getAllMyCommits] page: ${pageCount}, url: ${url}`);
+      console.log(`[getAllMyCommits] commits this page: ${commits?.length}`);
+      console.log(`[getAllMyCommits] Link header:`, response?.headers?.link);
+      if (!commits || commits.length === 0) break;
+      // 내 커밋만 필터링
+      const myCommits = commits.filter(commit => {
+        const authorLogin = commit.author?.login;
+        const committerLogin = commit.committer?.login;
+        const authorEmail = commit.commit?.author?.email;
+        const committerEmail = commit.commit?.committer?.email;
+        return (
+          (githubLogin && (authorLogin === githubLogin || committerLogin === githubLogin)) ||
+          (userEmail && (authorEmail === userEmail || committerEmail === userEmail))
+        );
+      });
+      allCommits = allCommits.concat(myCommits);
+      // Link 헤더에서 next 페이지가 있는지 확인
+      const link = response?.headers?.link;
+      if (link) {
+        const parsed = parseLinkHeader(link);
+        if (parsed && parsed.next) {
+          url = parsed.next.url;
+          hasNext = true;
+        } else {
+          hasNext = false;
+        }
+      } else {
+        hasNext = false;
+      }
+      pageCount++;
+    }
+    return allCommits;
+  }
+
+  /**
+   * 전체 PR 중 내 PR만 반환 (페이지네이션, Link 헤더 기반)
+   */
+  async getAllMyPulls(owner: string, repo: string, userId: string): Promise<any[]> {
+    const githubLogin = await this.getGithubLoginByUserId(userId);
+    const perPage = 100;
+    let allPRs: any[] = [];
+    let url = `${this.githubApiUrl}/repos/${owner}/${repo}/pulls?state=all&per_page=${perPage}&page=1`;
+    let hasNext = true;
+    while (hasNext) {
+      const response = await this.httpService
+        .get(url, { headers: await this.getHeaders(userId) })
+        .toPromise();
+      const pulls = response?.data;
+      if (!pulls || pulls.length === 0) break;
+      // 내 PR만 필터링
+      const myPRs = pulls.filter(pr => {
+        const prLogin = pr.user?.login;
+        return prLogin === githubLogin;
+      });
+      allPRs = allPRs.concat(myPRs);
+      // Link 헤더에서 next 페이지가 있는지 확인
+      const link = response?.headers?.link;
+      if (link) {
+        const parsed = parseLinkHeader(link);
+        if (parsed && parsed.next) {
+          url = parsed.next.url;
+          hasNext = true;
+        } else {
+          hasNext = false;
+        }
+      } else {
+        hasNext = false;
+      }
+    }
+    return allPRs;
   }
 }
