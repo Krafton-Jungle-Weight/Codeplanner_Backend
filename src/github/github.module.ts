@@ -14,9 +14,10 @@ import { Issue } from 'src/issues/issues.entity';
 import { GithubPullRequestService } from './github-pull-request.service';
 import { AnalysisService } from 'src/analysis/analysis.service';
 import { GithubPullRequestController } from './github-pull-request.controller';
+import { UserModule } from 'src/user/user.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([GithubToken, GithubCommits, Issue]), AuthModule, HttpModule, ProjectModule],
+  imports: [TypeOrmModule.forFeature([GithubToken, GithubCommits, Issue]), AuthModule, HttpModule, ProjectModule, UserModule],
   controllers: [GithubController, GithubWebhookController, GithubPullRequestController],
   providers: [GithubService, JwtAuthGuard, GithubPullRequestService, GithubWebhookService, AnalysisService],
   exports: [GithubService, JwtAuthGuard, GithubPullRequestService],
