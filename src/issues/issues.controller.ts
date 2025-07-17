@@ -11,6 +11,7 @@ import {
 import { IssuesService } from './issues.service';
 import { CreateIssueDto, ReorderIssuesDto } from './issues-update.dto';
 import { UpdateIssueDto } from './dto/issue-info.dto';
+import { AssignReviewersDto, ReviewDto, RejectReviewDto } from './dto/reviewer.dto';
 import { Issue } from './issues.entity';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/user.decorator';
@@ -22,7 +23,7 @@ export class IssuesController {
 
   @UseGuards(JwtAuthGuard)
   @Get('/:projectId/issues')
-  getIssues(@Param('projectId') projectId: string) {
+  getIssues(@Param('projectId') projectId: string): Promise<any[]> {
     return this.issuesService.getIssues(projectId);
   }
 
@@ -79,7 +80,7 @@ export class IssuesController {
   getMyIssue(
     @CurrentUser() user: any,
     @Param('projectId') projectId: string,
-  ): Promise<Issue[]> {
+  ): Promise<any[]> {
     return this.issuesService.getIssuesCurrentUser(user.id, projectId);
   }
 
@@ -145,5 +146,40 @@ export class IssuesController {
     @CurrentUser() user: User,
   ) {
     return this.issuesService.updateIssueInfo(dto, projectId, issueId, user.id);
+  }
+
+  // 리뷰어 지정
+  @UseGuards(JwtAuthGuard)
+  @Post('/:projectId/issues/:issueId/assign-reviewers')
+  async assignReviewers(
+    @Param('issueId') issueId: string,
+    @Param('projectId') projectId: string,
+    @Body() dto: AssignReviewersDto,
+  ) {
+    return this.issuesService.assignReviewers(issueId, projectId, dto);
+  }
+
+  // 리뷰 승인
+  @UseGuards(JwtAuthGuard)
+  @Post('/:projectId/issues/:issueId/review/approve')
+  async approveReview(
+    @Param('issueId') issueId: string,
+    @Param('projectId') projectId: string,
+    @Body() dto: ReviewDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.issuesService.approveReview(issueId, projectId, user.id, dto);
+  }
+
+  // 리뷰 거부
+  @UseGuards(JwtAuthGuard)
+  @Post('/:projectId/issues/:issueId/review/reject')
+  async rejectReview(
+    @Param('issueId') issueId: string,
+    @Param('projectId') projectId: string,
+    @Body() dto: RejectReviewDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.issuesService.rejectReview(issueId, projectId, user.id, dto);
   }
 }

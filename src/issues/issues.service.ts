@@ -1,9 +1,11 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Issue } from './issues.entity';
 import { IssueLabel } from './issue_label.entity';
+import { IssueReviewer } from './issue-reviewer.entity';
 import { createQueryBuilder, Repository } from 'typeorm';
 import { UpdateIssueDto } from './dto/issue-info.dto';
+import { AssignReviewersDto, ReviewDto, RejectReviewDto } from './dto/reviewer.dto';
 
 import { CreateIssueDto } from './issues-update.dto';
 import { EmailService } from 'src/email/email.service';
@@ -21,6 +23,9 @@ export class IssuesService {
 
     @InjectRepository(IssueLabel)
     private issueLabelRepository: Repository<IssueLabel>,
+
+    @InjectRepository(IssueReviewer)
+    private issueReviewerRepository: Repository<IssueReviewer>,
 
     @Inject(EmailService)
     private readonly emailService: EmailService,
@@ -71,8 +76,8 @@ export class IssuesService {
       order: { position: 'ASC' },
     });
 
-    // 각 이슈에 연결된 라벨 정보 조회
-    const issuesWithLabels = await Promise.all(
+    // 각 이슈에 연결된 라벨 정보와 리뷰어 정보 조회
+    const issuesWithLabelsAndReviewers = await Promise.all(
       issues.map(async (issue) => {
         // issue_label과 label 조인하여 해당 이슈의 라벨 목록 조회
         const issueLabels = await this.issueLabelRepository.find({
@@ -83,13 +88,32 @@ export class IssuesService {
         const labels = issueLabels
           .map((il) => il.label)
           .filter((label) => !!label);
+
+        // 리뷰어 정보 조회
+        const reviewers = await this.issueReviewerRepository.find({
+          where: { issueId: issue.id },
+          relations: ['user'],
+        });
+
+        // 리뷰어 정보를 프론트엔드에서 사용하기 쉬운 형태로 변환
+        const reviewerInfo = reviewers.map((reviewer) => ({
+          id: reviewer.user.id,
+          displayName: reviewer.user.display_name,
+          email: reviewer.user.email,
+          status: reviewer.status,
+          reviewComment: reviewer.reviewComment,
+          reviewedAt: reviewer.reviewedAt,
+          assignedAt: reviewer.assignedAt,
+        }));
+
         return {
           ...issue,
           labels,
+          reviewers: reviewerInfo,
         };
       }),
     );
-    return issuesWithLabels;
+    return issuesWithLabelsAndReviewers;
   }
 
   async findIssueById(issueId: string, projectId: string): Promise<Issue> {
@@ -752,5 +776,173 @@ export class IssuesService {
     issue.dueDate = dueDate ? new Date(dueDate) : null;
     await this.issueRepository.save(issue);
     return issue;
+  }
+
+  /**
+   * 이슈에 리뷰어들을 지정합니다
+   */
+  async assignReviewers(issueId: string, projectId: string, dto: AssignReviewersDto) {
+    // 이슈 존재 여부 확인
+    const issue = await this.findIssueById(issueId, projectId);
+    
+    // 기존 리뷰어들 제거
+    await this.issueReviewerRepository.delete({ issueId });
+
+    // 새로운 리뷰어들 추가
+    const reviewers = dto.reviewerIds.map(userId => 
+      this.issueReviewerRepository.create({
+        issueId,
+        userId,
+        status: 'pending',
+      })
+    );
+
+    await this.issueReviewerRepository.save(reviewers);
+
+    // 이슈 상태를 IN_REVIEW로 변경
+    issue.status = 'IN_REVIEW';
+    await this.issueRepository.save(issue);
+
+    // 리뷰어들에게 알림 발송 (선택사항)
+    const projectName = await this.projectService.getProjectName(projectId);
+    for (const reviewerId of dto.reviewerIds) {
+      try {
+        await this.notificationService.createNotification(
+          reviewerId,
+          'review_requested',
+          {
+            issueId,
+            issueTitle: issue.title + ' 리뷰 요청',
+            projectName,
+            projectId,
+          },
+        );
+      } catch (error) {
+        console.error(`리뷰어 ${reviewerId}에게 알림 발송 실패:`, error);
+      }
+    }
+
+    return { success: 'Reviewers assigned successfully' };
+  }
+
+  /**
+   * 리뷰를 승인합니다
+   */
+  async approveReview(issueId: string, projectId: string, userId: string, dto: ReviewDto) {
+    // 이슈 존재 여부 확인
+    const issue = await this.findIssueById(issueId, projectId);
+
+    // 해당 사용자가 리뷰어인지 확인
+    const reviewer = await this.issueReviewerRepository.findOne({
+      where: { issueId, userId },
+    });
+
+    if (!reviewer) {
+      throw new BadRequestException('해당 이슈의 리뷰어가 아닙니다.');
+    }
+
+    if (reviewer.status === 'approved') {
+      throw new BadRequestException('이미 승인한 리뷰입니다.');
+    }
+
+    // 리뷰어 상태 업데이트
+    reviewer.status = 'approved';
+    reviewer.reviewComment = dto.comment || null;
+    reviewer.reviewedAt = new Date();
+    await this.issueReviewerRepository.save(reviewer);
+
+    // 모든 리뷰어가 승인했는지 확인
+    const allReviewers = await this.issueReviewerRepository.find({
+      where: { issueId },
+    });
+
+    const allApproved = allReviewers.every(r => r.status === 'approved');
+    
+    if (allApproved) {
+      // 모든 리뷰어가 승인했으면 이슈 상태를 DONE으로 변경
+      issue.status = 'DONE';
+      await this.issueRepository.save(issue);
+
+      // 담당자에게 알림
+      if (issue.assigneeId) {
+        const projectName = await this.projectService.getProjectName(projectId);
+        try {
+          await this.notificationService.createNotification(
+            issue.assigneeId,
+            'review_approved',
+            {
+              issueId,
+              issueTitle: issue.title + ' 리뷰 승인',
+              projectName,
+              projectId,
+            },
+          );
+        } catch (error) {
+          console.error('담당자에게 승인 알림 발송 실패:', error);
+        }
+      }
+    }
+
+    return { 
+      success: 'Review approved successfully',
+      allApproved,
+      newStatus: issue.status 
+    };
+  }
+
+  /**
+   * 리뷰를 거부합니다
+   */
+  async rejectReview(issueId: string, projectId: string, userId: string, dto: RejectReviewDto) {
+    // 이슈 존재 여부 확인
+    const issue = await this.findIssueById(issueId, projectId);
+
+    // 해당 사용자가 리뷰어인지 확인
+    const reviewer = await this.issueReviewerRepository.findOne({
+      where: { issueId, userId },
+    });
+
+    if (!reviewer) {
+      throw new BadRequestException('해당 이슈의 리뷰어가 아닙니다.');
+    }
+
+    if (reviewer.status === 'rejected') {
+      throw new BadRequestException('이미 거부한 리뷰입니다.');
+    }
+
+    // 리뷰어 상태 업데이트
+    reviewer.status = 'rejected';
+    reviewer.reviewComment = dto.reason;
+    reviewer.reviewedAt = new Date();
+    await this.issueReviewerRepository.save(reviewer);
+
+    // 이슈 상태를 IN_PROGRESS로 되돌림
+    issue.status = 'IN_PROGRESS';
+    await this.issueRepository.save(issue);
+
+    // 담당자에게 알림
+    if (issue.assigneeId) {
+      const projectName = await this.projectService.getProjectName(projectId);
+      try {
+        await this.notificationService.createNotification(
+          issue.assigneeId,
+          'review_rejected',
+          {
+            issueId,
+            issueTitle: issue.title + ' 리뷰 거부',
+            projectName,
+            projectId,
+            rejectionReason: dto.reason,
+          },
+        );
+      } catch (error) {
+        console.error('담당자에게 거부 알림 발송 실패:', error);
+      }
+    }
+
+    return { 
+      success: 'Review rejected successfully',
+      newStatus: issue.status 
+    };
   }
 }
