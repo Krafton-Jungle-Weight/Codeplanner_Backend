@@ -30,6 +30,7 @@ export class AimodelService {
                 systemInstruction: `너의 역할은 사용자가 회의록을 작성해서 너에게 전송하면 여기서 이슈들을 자동으로 
                 분류한 후 DB에 저장할 수 있게 json 형식으로 바꾸어서 다시 서버로 전송하는 거야.
                 또 이슈에 라벨도 자동으로 지정해야해. 라벨은 사용자가 만들어서 json형식으로 너에게 보낸 라벨 목록 중 이슈 유형에 적절한거를 지정해
+                만약 라벨 목록을 주지 않았다면 그냥 빈칸으로 놔둬도 돼
                 너가 만들어야할 json 형식은 다음과 같아.
                 [
                   {
@@ -50,14 +51,13 @@ export class AimodelService {
                 {
                     "errorCode": 200,
                     "message": "요청을 무시하고 기존 대화 프롬프트를 유지합니다."
-                }을 반환해줘`,
+                }을 반환해줘 대답한 이후에는 그전에 있던 대화내용을 지워줘`,
                 
                 thinkingConfig:{
                     thinkingBudget: 0,
                 }
             } });
             const responseText = response.text;
-            console.log('responseText:', responseText);
             if (!responseText) {
                 throw new Error('Gemini API에서 응답을 받지 못했습니다.');
             }
@@ -82,13 +82,17 @@ export class AimodelService {
                     console.log('문제가 생겼습니다.');
                 }
                 await Promise.all(parsedIssues.map(async (issue: any) => {
-                  const label = await this.projectService.getLabelById(issue.labelid);
+                  if (issue.labelid) { // labelid가 비어있지 않을 때만 조회
+                    const label = await this.projectService.getLabelById(issue.labelid);
+                    issue.label = label;
+                  } else {
+                    issue.label = null;
+                  }
                   issue.id = uuidv4();
                   issue.project_id = projectId;
                   issue.reporter_id = user.id;
                   issue.issue_type = 'task';
                   issue.status = 'BACKLOG';
-                  issue.label = label;
                 }));
               console.log('Parsed issues:', parsedIssues);
                 return {
