@@ -75,10 +75,11 @@ export class TimelineService {
 
     // 상태별 색상 및 라벨 매핑
     const statusMap = {
+      'BACKLOG': { label: '백로그', color: '#a3a3a3', count: 0 },
       'TODO': { label: '대기 중', color: '#fbbf24', count: 0 },
       'IN_PROGRESS': { label: '진행 중', color: '#3b82f6', count: 0 },
-      'DONE': { label: '완료', color: '#10b981', count: 0 },
-      'BLOCKED': { label: '차단됨', color: '#ef4444', count: 0 }
+      'IN_REVIEW': { label: '리뷰 중', color: '#8b5cf6', count: 0 },
+      'DONE': { label: '완료', color: '#10b981', count: 0 }
     };
 
     // 조회된 통계 데이터를 매핑
@@ -90,8 +91,10 @@ export class TimelineService {
         statusMap['IN_PROGRESS'].count = parseInt(row.count);
       } else if (status === 'done') {
         statusMap['DONE'].count = parseInt(row.count);
-      } else if (status === 'blocked') {
-        statusMap['BLOCKED'].count = parseInt(row.count);
+      } else if (status === 'in_review') {
+        statusMap['IN_REVIEW'].count = parseInt(row.count);
+      } else if (status === 'backlog') {
+        statusMap['BACKLOG'].count = parseInt(row.count);
       }
     });
 
@@ -122,8 +125,13 @@ export class TimelineService {
     return tasks.map(task => {
       // startDate와 dueDate를 Date 객체로 변환 후 문자열로 변환
       const startDate = task.startDate ? new Date(task.startDate).toISOString().split('T')[0] : null;
-      const endDate = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : null;
-      
+      // dueDate에 하루를 더해서 반환
+      let endDate: string | null = null;
+      if (task.dueDate) {
+        const due = new Date(task.dueDate);
+        due.setDate(due.getDate() + 1); // 하루 더하기
+        endDate = due.toISOString().split('T')[0];
+      }
       // 진행률 계산 (상태에 따라)
       let progress = 0;
       if (task.status === 'done') {

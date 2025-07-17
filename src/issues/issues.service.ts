@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Issue } from './issues.entity';
 import { IssueLabel } from './issue_label.entity';
 import { IssueReviewer } from './issue-reviewer.entity';
-import { createQueryBuilder, Repository } from 'typeorm';
+import { createQueryBuilder, Repository, In } from 'typeorm';
 import { UpdateIssueDto } from './dto/issue-info.dto';
 import { AssignReviewersDto, ReviewDto, RejectReviewDto } from './dto/reviewer.dto';
 
@@ -229,6 +229,20 @@ export class IssuesService {
           }
         }
       }
+      
+      // IN_REVIEW에서 다른 상태로 변경된 경우 리뷰어 데이터 삭제
+      if (originalIssue.status === 'IN_REVIEW' && dto.status !== 'IN_REVIEW') {
+        try {
+          await this.issueReviewerRepository.delete({
+            issueId: originalIssue.id
+          });
+          console.log(`Cleaned up reviewers for issue ${originalIssue.id} moved from IN_REVIEW to ${dto.status}`);
+        } catch (error) {
+          console.error('리뷰어 데이터 삭제 실패:', error);
+          // 리뷰어 데이터 삭제 실패해도 기존 로직에는 영향 없음
+        }
+      }
+      
       originalIssue.status = dto.status;
     }
 
@@ -442,6 +456,26 @@ export class IssuesService {
     `;
     await this.issueRepository.query(sql, [issueIds, targetColumnId]);
 
+    // IN_REVIEW에서 다른 상태로 변경된 이슈들의 리뷰어 데이터 삭제
+    if (originalIssues.length > 0) {
+      try {
+        const issuesMovedFromReview = originalIssues.filter(
+          (issue) => issue.status === 'IN_REVIEW' && targetColumnId !== 'IN_REVIEW'
+        );
+
+        if (issuesMovedFromReview.length > 0) {
+          const issueIdsToCleanup = issuesMovedFromReview.map(issue => issue.id);
+          await this.issueReviewerRepository.delete({
+            issueId: In(issueIdsToCleanup)
+          });
+          console.log(`Cleaned up reviewers for ${issueIdsToCleanup.length} issues moved from IN_REVIEW`);
+        }
+      } catch (error) {
+        console.error('리뷰어 데이터 삭제 실패:', error);
+        // 리뷰어 데이터 삭제 실패해도 기존 로직에는 영향 없음
+      }
+    }
+
     // Activity 로깅 추가 (상태가 실제로 변경된 이슈들만, 중복 방지를 위해 하나만)
     if (userId && projectId && originalIssues.length > 0) {
       try {
@@ -562,27 +596,7 @@ export class IssuesService {
       // 트랜잭션 커밋
       await queryRunner.commitTransaction();
 
-      // 트랜잭션 외부에서 실행되는 작업들 (실패해도 이슈 생성에는 영향 없음)
-      let branchName: string | undefined;
-      let branchError: string | undefined;
-
-      if (dto.createBranch !== false) {
-        try {
-          const branchResult = await this.createBranchForIssue(
-            projectId,
-            dto.title,
-            user.id,
-          );
-          branchName = branchResult?.branchName;
-          branchError = branchResult?.error;
-          console.log(
-            `브랜치 생성 결과 - branchName: ${branchName}, branchError: ${branchError}`,
-          );
-        } catch (error) {
-          console.error('브랜치 생성 실패:', error);
-          branchError = '브랜치 생성 중 예상치 못한 오류가 발생했습니다.';
-        }
-      }
+      // 브랜치 생성 로직 제거 - CreateBranchModal에서 직접 처리
 
       // 이슈 알림 생성
       if (cleanAssigneeId) {
@@ -659,8 +673,6 @@ export class IssuesService {
 
       const response = {
         success: 'Issue created successfully',
-        branchName,
-        branchError,
       };
 
       console.log(`createIssue 최종 응답:`, response);
@@ -681,10 +693,11 @@ export class IssuesService {
   /**
    * 이슈를 위한 브랜치를 생성하는 메서드
    */
-  private async createBranchForIssue(
+  async createBranchForIssue(
     projectId: string,
     issueTitle: string,
     userId: string,
+    customBranchName?: string,
   ): Promise<{ branchName?: string; error?: string }> {
     try {
       // 프로젝트 정보 가져오기
@@ -721,12 +734,15 @@ export class IssuesService {
         );
       }
 
+      // 브랜치 이름 결정 (사용자 지정 또는 자동 생성)
+      const finalBranchName = customBranchName || `feature/${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
+      
       // 브랜치 생성
       const branchData = await this.githubService.createBranchFromIssue(
         userId,
         owner,
         repo,
-        issueTitle,
+        finalBranchName,
         baseBranch,
       );
 
@@ -892,9 +908,9 @@ export class IssuesService {
     const allApproved = allReviewers.every(r => r.status === 'approved');
     
     if (allApproved) {
-      // 모든 리뷰어가 승인했으면 이슈 상태를 DONE으로 변경
-      issue.status = 'DONE';
-      await this.issueRepository.save(issue);
+      // 모든 리뷰어가 승인했지만 상태는 IN_REVIEW로 유지 (리뷰 완료 표시용)
+      // 상태를 DONE으로 변경하지 않고 IN_REVIEW 상태 유지
+      // 리뷰어 데이터도 유지하여 완료 상태를 표시할 수 있도록 함
 
       // 담당자에게 알림
       if (issue.assigneeId) {
@@ -905,7 +921,7 @@ export class IssuesService {
             'review_approved',
             {
               issueId,
-              issueTitle: issue.title + ' 리뷰 승인',
+              issueTitle: issue.title + ' 리뷰 완료',
               projectName,
               projectId,
             },
@@ -949,9 +965,9 @@ export class IssuesService {
     reviewer.reviewedAt = new Date();
     await this.issueReviewerRepository.save(reviewer);
 
-    // 이슈 상태를 IN_PROGRESS로 되돌림
-    issue.status = 'IN_PROGRESS';
-    await this.issueRepository.save(issue);
+    // 리뷰가 거부되었지만 상태는 IN_REVIEW로 유지 (리뷰 거부 표시용)
+    // 상태를 IN_PROGRESS로 변경하지 않고 IN_REVIEW 상태 유지
+    // 리뷰어 데이터도 유지하여 거부 상태를 표시할 수 있도록 함
 
     // 담당자에게 알림
     if (issue.assigneeId) {
