@@ -20,7 +20,7 @@ jobs:
 
     - name: SSH and deploy
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@3.38.25.129 << 'EOF'
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
           cd /home/ubuntu/codeplanner/Codeplanner_Backend
           git pull origin main
           rm -rf .next node_modules

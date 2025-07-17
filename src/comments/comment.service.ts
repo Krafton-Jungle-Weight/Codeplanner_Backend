@@ -1,15 +1,25 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Comment } from './comment.entity';
 import { CreateCommentDto, UpdateCommentDto } from './comment.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/user/user.entity';
+import { NotificationService } from 'src/notification/notification.service';
+import { IssuesService } from 'src/issues/issues.service';
+import { ProjectService } from 'src/project/project.service';
 
 @Injectable()
 export class CommentService {
   constructor(
     @InjectRepository(Comment)
     private readonly commentRepository: Repository<Comment>,
+
+    @Inject(NotificationService)
+    private readonly notificationService: NotificationService,
+    @Inject(IssuesService)
+    private readonly issuesService: IssuesService,
+    @Inject(ProjectService)
+    private readonly projectService: ProjectService,
   ) {}
 
   async createComment(
@@ -18,11 +28,44 @@ export class CommentService {
     dto: CreateCommentDto,
     user: User,
   ) {
+    // @[display_name](id) 형식에서 id만 추출
+    const mentionIds: string[] = [];
+    const mentionRegex = /@\[[^\]]+\]\(([^)]+)\)/g;
+    let match;
+    while ((match = mentionRegex.exec(dto.content)) !== null) {
+      mentionIds.push(match[1]);
+    }
+    console.log('mention ids: ', mentionIds);
+
+    // 멘션 알림 생성
+    if (mentionIds.length !== 0) {
+      // 이슈 제목, 프로젝트 이름 조회 (비동기)
+      const issue = await this.issuesService.findIssueById(issueId, projectId);
+      const issueTitle = issue.title;
+      const projectName = await this.projectService.getProjectName(projectId);
+      // 각 멘션 대상에게 알림 생성
+      for (const mentionId of mentionIds) {
+        await this.notificationService.createNotification(
+          mentionId,
+          'issue_created_mention',
+          {
+            issueId: issueId,
+            issueTitle: issueTitle,
+            projectName: projectName,
+            projectId: projectId,
+          },
+        );
+      }
+      
+    }
+
+    // 추출된 mentionIds를 활용하려면 아래에서 사용
     const comment = this.commentRepository.create({
       ...dto,
       issue: { id: issueId },
       author: { id: user.id },
     });
+
     return this.commentRepository.save(comment);
   }
 

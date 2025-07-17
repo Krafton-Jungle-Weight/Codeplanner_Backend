@@ -415,15 +415,15 @@ export class ProjectService {
 
   async deleteLabel(projectId: string, labelId: string) {
     // 연결된 이슈가 있는지 확인
-    const connectedIssues = await this.issueLabelRepo.count({
-      where: { labelId },
-    });
+    // const connectedIssues = await this.issueLabelRepo.count({
+    //   where: { labelId },
+    // });
 
-    if (connectedIssues > 0) {
-      throw new BadRequestException(
-        `이 라벨은 ${connectedIssues}개의 이슈에 연결되어 있어 삭제할 수 없습니다. 먼저 이슈에서 라벨을 제거해주세요.`,
-      );
-    }
+    // if (connectedIssues > 0) {
+    //   throw new BadRequestException(
+    //     `이 라벨은 ${connectedIssues}개의 이슈에 연결되어 있어 삭제할 수 없습니다. 먼저 이슈에서 라벨을 제거해주세요.`,
+    //   );
+    // }
 
     await this.labelRepo.delete(labelId);
     return { message: '라벨이 삭제되었습니다.' };

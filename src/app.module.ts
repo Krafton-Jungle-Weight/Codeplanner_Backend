@@ -22,6 +22,7 @@ import { ActivityModule } from './activity/activity.module';
 import { LogHeadersMiddleware } from './common/middleware/log-headers.middleware';
 import { ProjectModule } from './project/project.module';
 import { InviteModule } from './invite/invite.module';
+import { SummaryaiModule } from './summaryai/summaryai.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { InviteModule } from './invite/invite.module';
     ActivityModule,
     ProjectModule,
     InviteModule,
+    SummaryaiModule,
   ],
   controllers: [AppController, EmailController],
 
