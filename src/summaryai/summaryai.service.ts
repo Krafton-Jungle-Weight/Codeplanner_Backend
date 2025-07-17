@@ -142,12 +142,25 @@ export class SummaryaiService {
       for (const issue of issues) {
         try {
           const comments = await this.commentService.getComments(projectId, issue.id);
+          // 각 댓글의 issue.id, 댓글ID, 작성자ID 로그 출력
+          comments.forEach(comment => {
+            console.log(
+              `이슈ID: ${issue.id}, 댓글ID: ${comment.id}, 작성자ID: ${comment.authorId}`
+            );
+          });
           allComments.push(...comments);
         } catch (error) {
           console.error(`이슈 ${issue.id}의 댓글 수집 실패:`, error);
         }
       }
-      const userComments = allComments.filter(comment => comment.authorId === userId);
+      console.log(`현재 집계 중인 userId: ${userId}`);
+      const userComments = allComments.filter(comment => {
+        const isMine = comment.authorId === userId;
+        console.log(
+          `댓글ID: ${comment.id}, 작성자ID: ${comment.authorId}, userId: ${userId}, 일치여부: ${isMine}`
+        );
+        return isMine;
+      });
       activities.push(...userComments.map(comment => ({
         id: comment.id,
         content: comment.content,
