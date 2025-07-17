@@ -408,6 +408,11 @@ export class ProjectService {
     return labels;
   }
 
+  async getLabelById(labelId: string) {
+    const label = await this.labelRepo.findOne({ where: { id: labelId } });
+    return label;
+  }
+
   async deleteLabel(projectId: string, labelId: string) {
     // 연결된 이슈가 있는지 확인
     // const connectedIssues = await this.issueLabelRepo.count({
