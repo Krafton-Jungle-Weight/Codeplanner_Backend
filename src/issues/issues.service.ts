@@ -534,7 +534,6 @@ export class IssuesService {
           }
         }
       }
-
       // 트랜잭션 커밋
       await queryRunner.commitTransaction();
       // 트랜잭션 외부에서 실행되는 작업들 (실패해도 이슈 생성에는 영향 없음)
