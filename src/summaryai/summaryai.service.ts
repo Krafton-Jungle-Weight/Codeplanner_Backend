@@ -144,6 +144,8 @@ export class SummaryaiService {
         try {
           const comments = await this.commentService.getComments(projectId, issue.id);
           console.log(`이슈ID: ${issue.id}에서 가져온 댓글 개수: ${comments.length}`);
+
+          // 각 댓글의 issue.id, 댓글ID, 작성자ID 로그 출력
           comments.forEach(comment => {
             console.log(
               `이슈ID: ${issue.id}, 댓글ID: ${comment.id}, 작성자ID: ${comment.authorId}`
