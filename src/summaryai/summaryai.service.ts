@@ -123,9 +123,9 @@ export class SummaryaiService {
     }
 
     try {
-      // 1. 이슈 수집
-      const issues = await this.issuesService.getIssues(projectId);
-      activities.push(...issues.map(issue => ({
+      // 1. 내 이슈만 집계
+      const myIssues = await this.issuesService.getIssuesCurrentUser(userId, projectId);
+      activities.push(...myIssues.map(issue => ({
         id: issue.id,
         title: issue.title,
         content: issue.description,
@@ -137,9 +137,10 @@ export class SummaryaiService {
         author: userId
       })));
 
-      // 2. 댓글 수집 - 각 이슈별로 댓글 수집
+      // 2. 프로젝트 내 모든 이슈의 댓글 중 내가 쓴 것만 집계
+      const allIssues = await this.issuesService.getIssues(projectId);
       const allComments: any[] = [];
-      for (const issue of issues) {
+      for (const issue of allIssues) {
         try {
           const comments = await this.commentService.getComments(projectId, issue.id);
           console.log(`이슈ID: ${issue.id}에서 가져온 댓글 개수: ${comments.length}`);
@@ -583,9 +584,7 @@ export class SummaryaiService {
     }
   }
 
-  /**
-   * 프로젝트 요약을 생성합니다.
-   */
+  // 프로젝트 요약을 생성합니다.
   private async generateProjectSummary(timeline: ProjectTimeline): Promise<string> {
     const events = timeline.events;
     if (events.length === 0) return '프로젝트 활동이 없습니다.';
