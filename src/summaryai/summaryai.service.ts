@@ -587,6 +587,7 @@ export class SummaryaiService {
     }
   }
 
+
   // Gemini Doublecheck API로 프롬프트를 보내는 함수
   private async callGeminiDoublecheck(prompt: string): Promise<string> {
     const apiKey = process.env.GEMINI_Doublecheck_API_KEY || 'AIzaSyDhyXbVoZ29dKug8pHEoqYFsddhFmf0MFU';
