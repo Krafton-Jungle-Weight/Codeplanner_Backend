@@ -562,6 +562,7 @@ export class SummaryaiService {
     }
   }
 
+  
   /**
    * Gemini API를 호출하여 프로젝트 요약을 생성합니다.
    */
@@ -586,7 +587,27 @@ export class SummaryaiService {
     }
   }
 
-  // 프로젝트 요약을 생성합니다.
+  // Gemini Doublecheck API로 프롬프트를 보내는 함수
+  private async callGeminiDoublecheck(prompt: string): Promise<string> {
+    const apiKey = process.env.GEMINI_Doublecheck_API_KEY || 'AIzaSyDhyXbVoZ29dKug8pHEoqYFsddhFmf0MFU';
+    if (!apiKey) {
+      return 'GEMINI_Doublecheck_API_KEY가 설정되어 있지 않습니다.';
+    }
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    try {
+      const { data } = await axios.post(
+        url,
+        { contents: [{ parts: [{ text: prompt }] }] },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      return data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'AI 응답이 없습니다.';
+    } catch (e) {
+      console.error('Gemini Doublecheck API 호출 실패:', e);
+      return '요약 생성 중 오류 발생. 다시 한번 시도해주세요.';
+    }
+  }
+
+  // 프로젝트 요약을 생성합니다. (1차 요약 후 2차 정제)
   private async generateProjectSummary(timeline: ProjectTimeline): Promise<string> {
     const events = timeline.events;
     if (events.length === 0) return '프로젝트 활동이 없습니다.';
@@ -594,15 +615,66 @@ export class SummaryaiService {
     // 1. 이슈/커밋 주요 내용/키워드 추출 (각 30개로 제한)
     const issues = events.filter(e => e.type === 'issue').slice(0, 30);
     const commits = events.filter(e => e.type === 'commit').slice(0, 30);
-    const issueTitles = issues.map(i => i.title).join('\n');
+    const doneIssues = issues.filter(i => i.status === 'DONE');
+    const openIssues = issues.filter(i => i.status !== 'DONE');
+    const doneTitles = doneIssues.map(i => i.title).join('\n');
+    const openTitles = openIssues.map(i => i.title).join('\n');
     const commitMessages = commits.map(c => c.title).join('\n');
 
-    // 2. Gemini 프롬프트 생성 (마크다운 문서 형식)
-    const prompt = `아래 이슈/커밋 내역을 바탕으로, 아래와 같은 마크다운 문서 형식으로 프로젝트를 요약해 주세요.\n\n## 프로젝트 목적\n(한 문장)\n\n## 주요 기능\n| 기능명 | 설명 |\n|---|---|\n| ... | ... |\n\n## 핵심 기술\n- (기술1)\n- (기술2)\n\n## 최근 집중한 작업\n- (리스트)\n\n## 해결한 문제\n- (리스트)\n\n## 남은 과제\n- (리스트)\n\n## 참고\n> (필요시 추가 설명)\n\n[이슈 목록]\n${issueTitles}\n\n[커밋 메시지]\n${commitMessages}`;
+    // 1차 프롬프트
+    const prompt = `아래 이슈/커밋 내역만을 바탕으로, 이전 히스토리는 포함하지 말고, 아래와 같은 마크다운 문서 형식으로 프로젝트를 요약해 주세요.\n\n\n## 프로젝트 목적\n(한 문장)\n\n## 주요 기능\n| 기능명 | 설명 |\n|---|---|\n| ... | ... |\n\n## 핵심 기술 스택\n- (React, NestJS, MySQL, AWS, TypeScript, Docker 등 실제 사용한 기술 스택만 나열) ※ 'UI/UX 개선', 'AI 분석', '자동 라벨링' 등 기능/작업/목표는 제외하고, 실제 기술명만 작성해 주세요.\n\n## 최근 집중한 작업\n- (리스트)\n\n## 해결한 과제\n${doneTitles ? doneTitles : '없음'}\n\n## 남은 과제\n${openTitles ? openTitles : '없음'}\n\n[이슈 목록]\n${issues.map(i => i.title).join('\n')}\n\n[커밋 메시지]\n${commitMessages}`;
 
-    // 3. Gemini API 호출
-    const aiSummary = await this.callGeminiSummaryAI(prompt);
-    return aiSummary;
+    // 1차 요약 생성
+    const draft = await this.callGeminiDoublecheck(prompt);
+
+    // 2차 검토 프롬프트 (1차 요약만 기반, 마크다운 폼 명확히 안내)
+    const markdownForm = `\n\n## 프로젝트 목적\n(한 문장)\n\n## 주요 기능\n| 기능명 | 설명 |\n|---|---|\n| ... | ... |\n\n## 핵심 기술 스택\n- (React, NestJS, MySQL, AWS, TypeScript, Docker 등 실제 사용한 기술 스택만 나열) ※ 'UI/UX 개선', 'AI 분석', '자동 라벨링' 등 기능/작업/목표는 제외하고, 실제 기술명만 작성해 주세요.\n\n## 최근 집중한 작업\n- (리스트)\n\n## 해결한 과제\n- (리스트)\n\n## 남은 과제\n- (리스트)`;
+    const reviewPrompt = `아래는 AI가 생성한 프로젝트 요약(초안)입니다.\n\n---\n${draft}\n---\n\n이 초안을 바탕으로, 누락된 핵심 내용이나 표현을 보완하여 반드시 아래의 마크다운 문서 형식(폼)과 동일한 구조로 **최종 프로젝트 요약**을 다시 작성해 주세요.\n\n단, '최근 집중한 작업', '해결한 과제', '남은 과제' 항목은 반드시 위 초안 요약에서 나온 내용을 그대로 복사해서 사용하세요. 안내문이나 메타데이터는 포함하지 말고, 아래 폼을 그대로 따라 결과만 반환해 주세요.${markdownForm}`;
+
+    // 2차 정제 요약 생성
+    const reviewed = await this.callGeminiDoublecheck(reviewPrompt);
+    return (reviewed ?? '').trim();
+  }
+
+
+
+  /**
+   * 타임라인 기반 요약 프롬프트 빌더
+   */
+  private buildSummaryPrompt(timeline: ProjectTimeline): string {
+    const issues = timeline.events.filter(e => e.type === 'issue').slice(0, 30);
+    const commits = timeline.events.filter(e => e.type === 'commit').slice(0, 30);
+    const issueTitles = issues.map(i => `- ${i.title}`).join('\n');
+    const commitMessages = commits.map(c => `- ${c.title}`).join('\n');
+
+    return `아래 이슈/커밋 내역만을 바탕으로, 이전 히스토리는 포함하지 말고, 다음과 같은 마크다운 문서 형식으로 프로젝트를 요약해 주세요.
+
+    ## 프로젝트 목적
+    (한 문장)
+
+    ## 주요 기능
+    | 기능명 | 설명 |
+    |---|---|
+    | ... | ... |
+
+    ## 핵심 기술
+    - (기술1)
+    - (기술2)
+
+    ## 최근 집중한 작업
+    - (리스트)
+
+    ## 해결한 문제
+    - (리스트)
+
+    ## 남은 과제
+    - (리스트)
+
+    [이슈 목록]
+    ${issueTitles}
+
+    [커밋 메시지]
+    ${commitMessages}`;
   }
 
   /**
@@ -688,7 +760,17 @@ export class SummaryaiService {
 
     // 수정: 번호 없이 작성자와 내용, 또는 내용만 나열
     const peerCommentLines = peerComments.map(c => c.author ? `- (${c.author}) ${c.content}` : `- ${c.content}`).join('\n');
-    const prompt = `아래는 내가 생성한 이슈에 대해 팀원들이 남긴 댓글입니다.\n\n${peerCommentLines}\n\n이 댓글들을 바탕으로, 내 협업 스타일과 커뮤니케이션 특징을 간단히 요약하고, 특히 \"강점\"과 \"개선점\"을 구체적으로 마크다운 리스트로 정리해 주세요. 아래와 같은 마크다운 구조로 작성해 주세요.\n\n## 팀원 피드백 요약\n\n### 강점\n- (구체적인 강점)\n\n### 개선점\n- (구체적인 개선점)\n\n### 한줄 총평\n- (한 문장으로 내 협업/커뮤니케이션 스타일을 요약)`;
+    const prompt = `아래는 내가 생성한 이슈에 대해 팀원들이 남긴 댓글입니다.
+    ${peerCommentLines}
+    이 댓글들을 바탕으로, 내 협업 스타일과 커뮤니케이션 특징을 간단히 요약하고, 특히 "강점"과 "개선점"을 구체적으로 마크다운 리스트로 정리해 주세요. 아래와 같은 마크다운 구조로 작성해 주세요.
+    댓글 내용만을 기반으로, 메타데이터나 식별자(예: “-(240b9327-9cf6-445d-8852-36e147ef4494)”) 없이 순수한 댓글 텍스트만을 활용해 다음을 수행해 주세요.
+    ## 팀원 피드백 요약
+    ### 강점
+    - (구체적인 강점)
+    ### 개선점
+    - (구체적인 개선점)
+    ### 한줄 총평
+    - (한 문장으로 내 협업/커뮤니케이션 스타일을 요약)`;
 
     // 4. Gemini API 호출 (GEMINI_FEEDBACK_API_KEY 사용)
     return await this.callGeminiFeedbackAI(prompt);
