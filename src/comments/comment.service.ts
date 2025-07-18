@@ -89,14 +89,14 @@ export class CommentService {
   }
 
   async getComments(projectId: string, issueId: string) {
-    console.log(`[getComments] projectId: ${projectId}, issueId: ${issueId}`);
+    // console.log(`[getComments] projectId: ${projectId}, issueId: ${issueId}`);
     const comments = await this.commentRepository.find({
       where: { issue: { id: issueId } },
       relations: ['author'],
     });
-    console.log(`[getComments] 결과 개수: ${comments.length}`);
+    // console.log(`[getComments] 결과 개수: ${comments.length}`);
     comments.forEach(comment => {
-      console.log(`[getComments] 댓글ID: ${comment.id}, 작성자ID: ${comment.authorId}, 내용: ${comment.content}`);
+      // console.log(`[getComments] 댓글ID: ${comment.id}, 작성자ID: ${comment.authorId}, 내용: ${comment.content}`);
     });
     // display_name을 포함한 결과로 변환
     return comments.map((comment) => ({
