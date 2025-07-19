@@ -735,8 +735,8 @@ export class IssuesService {
       }
 
       // 브랜치 이름 결정 (사용자 지정 또는 자동 생성)
-      const finalBranchName = customBranchName || `feature/${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
-      
+      const finalBranchName = customBranchName || `${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
+
       // 브랜치 생성
       const branchData = await this.githubService.createBranchFromIssue(
         userId,
