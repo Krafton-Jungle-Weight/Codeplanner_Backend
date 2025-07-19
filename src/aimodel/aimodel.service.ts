@@ -62,9 +62,39 @@ export class AimodelService {
                 throw new Error('Gemini API에서 응답을 받지 못했습니다.');
             }
             
+            const responseVerification = await this.genai.models.generateContent({ model: "models/gemini-2.5-flash-lite-preview-06-17", 
+                contents: `${responseText} \n labels : ${labelNamesIds} \n`,
+                config :{
+                    systemInstruction: `
+                    너의 역할은 앞에서 AI가 만들어준 json 형식의 이슈들이 json 형식으로 썼는지 확인하고 정말로 해당 이슈의 라벨이 
+                    이슈와 적합한지 확인하는 거야. 만약 맞는것 같다면 responseText를 그대로 반환해줘. 만약 아니라면 해당 이슈는 걸러서 반환해줘
+                    너가 만들어야할 json 형식은 다음과 같아.
+                    [
+                        {
+                            title: <이슈 이름>,
+                            description: <이슈 설명>,
+                            labelid : <label id>,
+                        },
+                        {
+                            title: <이슈 이름>,
+                            description: <이슈 설명>,
+                            labelid : <label id>,
+                        },
+                    ]
+                    만약 이슈가 하나도 없다면 빈 배열로 반환해줘.
+                    `,
+                    thinkingConfig:{
+                        thinkingBudget: 0,
+                    },
+                }
+            });
+            const responseVerificationText = responseVerification.text;
+            if (!responseVerificationText) {
+                throw new Error('Gemini API에서 응답을 받지 못했습니다.');
+            }
             try {
                 // 마크다운 코드 블록 제거 (```json ... ```)
-                let cleanJson = responseText.trim();
+                let cleanJson = responseVerificationText.trim();
                 
                 // ```json으로 시작하고 ```로 끝나는 경우 제거
                 if (cleanJson.startsWith('```json')) {
