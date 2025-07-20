@@ -20,13 +20,22 @@ export class CommentController {
     return this.commentService.createComment(projectId, issueId, dto, user);
   } 
 
+  // @Get('/:projectId/:issueId/')
+  // async getComments(
+  //   @Param('projectId') projectId: string,
+  //   @Param('issueId') issueId: string,
+  // ) {
+  //   return this.commentService.getComments(projectId, issueId);
+  // }
+  
   @Get('/:projectId/:issueId/')
   async getComments(
     @Param('projectId') projectId: string,
     @Param('issueId') issueId: string,
   ) {
-    return this.commentService.getComments(projectId, issueId);
+    return this.commentService.getCommentsSortByDate(projectId, issueId);
   }
+
 
   @UseGuards(JwtAuthGuard)
   @Delete('/:projectId/:issueId/:commentId')
