@@ -1,10 +1,11 @@
-import { Controller, Post, Body, Get, Param, UseGuards, Req, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Req, Query, Patch } from '@nestjs/common';
 import { AnalysisService } from './analysis.service';
 import { AnalyzeRequest } from './dto/analyze-request.dto';
 import { execa } from 'execa';
 import { join } from 'path';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/user.decorator';
+import { ClangFormatDto } from './dto/config.dto';
 
 @Controller('analysis')
 export class AnalysisController {
@@ -97,5 +98,35 @@ export class AnalysisController {
       pullNumber,
       user.id,
     );
+  }
+
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':projectId')
+  async getClangFormatConfig(
+    @Param('projectId') projectId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.analysisService.getClangFormatConfig(projectId, user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':projectId')
+  async saveClangFormatConfig(
+    @Param('projectId') projectId: string,
+    @Body() dto: ClangFormatDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.analysisService.saveClangFormatConfig(projectId, dto, user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':projectId')
+  async updateClangFormatConfig(
+    @Param('projectId') projectId: string,
+    @Body() dto: ClangFormatDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.analysisService.updateClangFormatConfig(projectId, dto, user);
   }
 }

@@ -1071,19 +1071,26 @@ export class GithubService {
     filePath: string,
     userId: string,
   ): Promise<{ content: string }> {
-    const headers = await this.getHeaders(userId);
-    const contentUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/contents/${filePath}?ref=${sha}`;
-    try {
-      const contentRes = await this.httpService.get(contentUrl, { headers }).toPromise();
-      const encoded = contentRes?.data?.content;
-      if (!encoded) {
-        throw new Error('파일 내용을 찾을 수 없습니다.');
-      }
-      const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
-      return { content: decoded };
-    } catch (err) {
-      // console.error(`파일 ${filePath} 읽기 실패`, err.message);
-      throw new Error(`파일 ${filePath} 읽기 실패: ${err.message}`);
+    // const headers = await this.getHeaders(userId);
+    // const contentUrl = `${this.githubApiUrl}/repos/${owner}/${repo}/contents/${filePath}?ref=${sha}`;
+    // try {
+    //   const contentRes = await this.httpService.get(contentUrl, { headers }).toPromise();
+    //   const encoded = contentRes?.data?.content;
+    //   if (!encoded) {
+    //     throw new Error('파일 내용을 찾을 수 없습니다.');
+    //   }
+    //   const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+    //   return { content: decoded };
+    // } catch (err) {
+    //   // console.error(`파일 ${filePath} 읽기 실패`, err.message);
+    //   throw new Error(`파일 ${filePath} 읽기 실패: ${err.message}`);
+    // }
+    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${sha}/${filePath}`;
+      try {
+        const res = await this.httpService.get(rawUrl, { responseType: 'text' }).toPromise();
+        return { content: res?.data ?? '' };
+      } catch (err) {
+        throw new Error(`Raw 파일 ${filePath} 읽기 실패: ${err.message}`);
     }
   }
 

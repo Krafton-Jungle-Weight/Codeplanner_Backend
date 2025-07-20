@@ -17,6 +17,7 @@ export class CppcheckScanner extends BaseScanner {
         '--enable=style,performance',
         '--std=c++17',
         '--suppress=missingIncludeSystem',
+        '--inconclusive',
         this.config.filePath,
         '-I', `${sdkPath}/usr/include`,
       ]); 

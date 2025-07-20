@@ -4,6 +4,8 @@
 export interface ScannerConfig {
   filePath: string;
   language: 'c' | 'cpp';
+  style?: string; // clang-format 스타일 (예: llvm, google)
+  indent?: number; // clang-format 들여쓰기
 }
 
 /*
