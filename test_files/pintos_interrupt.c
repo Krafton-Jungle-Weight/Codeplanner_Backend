@@ -121,7 +121,7 @@ intr_get_level (void) {
 	   Interrupts". */
 	asm volatile ("pushfq; popq %0" : "=g" (flags));
 
-	return flags & FLAG_IF ? INTR_ON : INTR_OFF;
+	return (flags & FLAG_IF) ? INTR_ON : INTR_OFF;
 }
 
 /* Enables or disables interrupts as specified by LEVEL and
@@ -381,10 +381,10 @@ intr_dump_frame (const struct intr_frame *f) {
 	   See [IA32-v2a] "MOV--Move to/from Control Registers" and
 	   [IA32-v3a] 5.14 "Interrupt 14--Page Fault Exception
 	   (#PF)". */
-	uint64_t cr2 = rcr2();
+	// uint64_t cr2 = rcr2();
 	printf ("Interrupt %#04llx (%s) at rip=%llx\n",
 			f->vec_no, intr_names[f->vec_no], f->rip);
-	printf (" cr2=%016llx error=%16llx\n", cr2, f->error_code);
+	// printf (" cr2=%016llx error=%16llx\n", cr2, f->error_code);
 	printf ("rax %016llx rbx %016llx rcx %016llx rdx %016llx\n",
 			f->R.rax, f->R.rbx, f->R.rcx, f->R.rdx);
 	printf ("rsp %016llx rbp %016llx rsi %016llx rdi %016llx\n",
