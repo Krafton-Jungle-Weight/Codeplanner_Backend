@@ -592,11 +592,30 @@ export class IssuesService {
           }
         }
       }
-
       // 트랜잭션 커밋
       await queryRunner.commitTransaction();
 
-      // 브랜치 생성 로직 제거 - CreateBranchModal에서 직접 처리
+      // 트랜잭션 외부에서 실행되는 작업들 (실패해도 이슈 생성에는 영향 없음)
+      let branchName: string | undefined;
+      let branchError: string | undefined;
+
+      if (dto.createBranch !== false) {
+        try {
+          const branchResult = await this.createBranchForIssue(
+            projectId,
+            dto.title,
+            user.id,
+          );
+          branchName = branchResult?.branchName;
+          branchError = branchResult?.error;
+          console.log(
+            `브랜치 생성 결과 - branchName: ${branchName}, branchError: ${branchError}`,
+          );
+        } catch (error) {
+          console.error('브랜치 생성 실패:', error);
+          branchError = '브랜치 생성 중 예상치 못한 오류가 발생했습니다.';
+        }
+      }
 
       // 이슈 알림 생성
       if (cleanAssigneeId) {
