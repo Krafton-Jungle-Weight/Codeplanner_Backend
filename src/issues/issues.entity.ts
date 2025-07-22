@@ -2,6 +2,7 @@ import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { GithubCommits } from '../github/github-commits.entity';
 import { Comment } from '../comments/comment.entity';
 import { IssueLabel } from './issue_label.entity';
+import { IssueReviewer } from './issue-reviewer.entity';
 
 @Entity('issue')
 export class Issue {
@@ -58,4 +59,10 @@ export class Issue {
    */
   @OneToMany(() => IssueLabel, (issueLabel) => issueLabel.issue)
   issueLabels: IssueLabel[];
+
+  /**
+   * 연결된 리뷰어들 (1:N 관계: 한 이슈에 여러 리뷰어)
+   */
+  @OneToMany(() => IssueReviewer, (issueReviewer) => issueReviewer.issue)
+  reviewers: IssueReviewer[];
 }

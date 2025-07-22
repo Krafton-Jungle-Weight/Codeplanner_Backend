@@ -123,9 +123,9 @@ export class SummaryaiService {
     }
 
     try {
-      // 1. 이슈 수집
-      const issues = await this.issuesService.getIssuesCurrentUser(userId, projectId);
-      activities.push(...issues.map(issue => ({
+      // 1. 내 이슈만 집계
+      const myIssues = await this.issuesService.getIssuesCurrentUser(userId, projectId);
+      activities.push(...myIssues.map(issue => ({
         id: issue.id,
         title: issue.title,
         content: issue.description,
@@ -137,16 +137,26 @@ export class SummaryaiService {
         author: userId
       })));
 
-      // 2. 댓글 수집 - 각 이슈별로 댓글 수집
+      // 2. 프로젝트 내 모든 이슈의 댓글 중 내가 쓴 것만 집계
+      const allIssues = await this.issuesService.getIssues(projectId);
       const allComments: any[] = [];
-      for (const issue of issues) {
+      for (const issue of allIssues) {
         try {
           const comments = await this.commentService.getComments(projectId, issue.id);
+          console.log(`이슈ID: ${issue.id}에서 가져온 댓글 개수: ${comments.length}`);
+
+          // 각 댓글의 issue.id, 댓글ID, 작성자ID 로그 출력
+          comments.forEach(comment => {
+            console.log(
+              `이슈ID: ${issue.id}, 댓글ID: ${comment.id}, 작성자ID: ${comment.authorId}`
+            );
+          });
           allComments.push(...comments);
         } catch (error) {
           console.error(`이슈 ${issue.id}의 댓글 수집 실패:`, error);
         }
       }
+      // 모든 댓글 중 내가 쓴 것만 필터링
       const userComments = allComments.filter(comment => comment.authorId === userId);
       activities.push(...userComments.map(comment => ({
         id: comment.id,
@@ -160,24 +170,13 @@ export class SummaryaiService {
       // 3. GitHub 커밋 수집 (owner, repo가 있는 경우만)
       if (owner && repo && githubLogin) {
         try {
-          const commits = await this.githubService.getAllCommitsForSummaryAI(owner, repo, userId);
-          // 디버깅용 로그: githubLogin과 커밋 샘플
-          // JWT에서 사용자 이메일 추출
-          const userEmail = (await this.userService.myPage(userId))?.email;
-          // 내 커밋만 필터링
-          const filteredCommits = commits.filter(commit => {
-            const authorLogin = commit.author?.login;
-            const committerLogin = commit.committer?.login;
-            const authorEmail = commit.commit?.author?.email;
-            const committerEmail = commit.commit?.committer?.email;
-            const isAuthorLogin = authorLogin === githubLogin;
-            const isCommitterLogin = committerLogin === githubLogin;
-            const isAuthorEmail = authorEmail === userEmail;
-            const isCommitterEmail = committerEmail === userEmail;
-            return isAuthorLogin || isCommitterLogin || isAuthorEmail || isCommitterEmail;
-          });
+          // 기존: const commits = await this.githubService.getAllCommitsForSummaryAI(owner, repo, userId);
+          const commits = await this.githubService.getAllMyCommits(owner, repo, userId);
+          // 디버깅용 로그 제거
+          // const userEmail = (await this.userService.myPage(userId))?.email;
+          // 내 커밋만 필터링 관련 로그 제거
           activities.push(
-            ...filteredCommits.flatMap(commit => {
+            ...commits.flatMap(commit => {
               let title = commit.commit.message;
               let isMerge = false;
               if (/merge|동기화|sync|squash|revert|pull request/i.test(title)) {
@@ -202,20 +201,26 @@ export class SummaryaiService {
 
         // 4. GitHub PR 수집 (owner, repo가 있는 경우만)
         try {
-          const pulls = await this.githubService.getAllPullsForSummaryAI(owner, repo, userId);
-          activities.push(...pulls
-            .filter(pr => pr.user.login === githubLogin)
-            .map(pr => ({
-              id: pr.id.toString(),
-              title: pr.title,
-              content: pr.body,
-              createdAt: new Date(pr.created_at),
-              updatedAt: new Date(pr.updated_at),
-              closedAt: pr.closed_at ? new Date(pr.closed_at) : undefined,
-              status: pr.state,
-              type: 'pr' as const,
-              author: githubLogin
-            })));
+          // 기존: const pulls = await this.githubService.getAllPullsForSummaryAI(owner, repo, userId);
+          const pulls = await this.githubService.getAllMyPulls(owner, repo, userId);
+          // 디버깅 로그 제거
+          // console.log('[기여도분석] PR 전체 개수:', pulls.length, '내 githubLogin:', githubLogin);
+          const myPRs = pulls.filter(pr => {
+            const prLogin = pr.user?.login;
+            return prLogin === githubLogin;
+          });
+          // console.log('[기여도분석] 내 PR 필터링 결과 개수:', myPRs.length);
+          activities.push(...myPRs.map(pr => ({
+            id: pr.id.toString(),
+            title: pr.title,
+            content: pr.body,
+            createdAt: new Date(pr.created_at),
+            updatedAt: new Date(pr.updated_at),
+            closedAt: pr.closed_at ? new Date(pr.closed_at) : undefined,
+            status: pr.state,
+            type: 'pr' as const,
+            author: githubLogin
+          })));
         } catch (error) {
           console.error('GitHub PR 수집 실패:', error);
         }
@@ -226,9 +231,11 @@ export class SummaryaiService {
     }
 
     // 최종 내 활동 커밋 목록 로그
+    const myIssues = activities.filter(a => a.type === 'issue');
+    const myPRs = activities.filter(a => a.type === 'pr');
     const myCommits = activities.filter(a => a.type === 'commit');
-    myCommits.forEach(c => {
-    });
+    const myComments = activities.filter(a => a.type === 'comment');
+    console.log(`[기여도분석] 내 이슈 개수: ${myIssues.length}, 내 PR 개수: ${myPRs.length}, 내 커밋 개수: ${myCommits.length}, 내 댓글 개수: ${myComments.length}`);
     return activities.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 
@@ -265,6 +272,16 @@ export class SummaryaiService {
     try {
       // 1. 전체 이슈 수집
       const issues = await this.issuesService.getIssues(projectId);
+      // 이슈별 댓글 수, 참여자 수, 라벨, 마감일 등 가공
+      const issueIdToComments: Record<string, any[]> = {};
+      for (const issue of issues) {
+        try {
+          const comments = await this.commentService.getComments(projectId, issue.id);
+          issueIdToComments[issue.id] = comments;
+        } catch (error) {
+          issueIdToComments[issue.id] = [];
+        }
+      }
       events.push(...issues.map(issue => ({
         id: issue.id,
         title: issue.title,
@@ -274,17 +291,22 @@ export class SummaryaiService {
         closedAt: undefined,
         status: issue.status,
         type: 'issue' as const,
-        author: issue.reporterId || 'unknown'
+        author: issue.reporterId || 'unknown',
+        commentCount: issueIdToComments[issue.id]?.length ?? 0,
+        labels: issue.labels ? issue.labels.map(l => l.name) : [],
+        participantCount: new Set([issue.reporterId, ...(issueIdToComments[issue.id]?.map(c => c.authorId) ?? [])]).size,
+        dueDate: issue.dueDate ?? undefined,
+        priority: undefined // 제거 (엔티티에 없음)
       })));
 
       // 2. 전체 댓글 수집 - 각 이슈별로 댓글 수집
       const allComments: any[] = [];
       for (const issue of issues) {
         try {
-          const comments = await this.commentService.getComments(projectId, issue.id);
+          const comments = issueIdToComments[issue.id] ?? await this.commentService.getComments(projectId, issue.id);
           allComments.push(...comments);
         } catch (error) {
-          console.error(`이슈 ${issue.id}의 댓글 수집 실패:`, error);
+          // 이미 위에서 처리됨
         }
       }
       events.push(...allComments.map(comment => ({
@@ -321,7 +343,9 @@ export class SummaryaiService {
             content: commit.commit.message,
             createdAt: new Date(commit.commit.author.date),
             type: 'commit' as const,
-            author: commit.author?.login || commit.committer?.login || 'unknown'
+            author: commit.author?.login || commit.committer?.login || 'unknown',
+            // 커밋 본문 길이
+            contentLength: commit.commit.message?.length ?? 0
           })));
         } catch (error) {
           console.error('GitHub 커밋 수집 실패:', error);
@@ -538,6 +562,7 @@ export class SummaryaiService {
     }
   }
 
+  
   /**
    * Gemini API를 호출하여 프로젝트 요약을 생성합니다.
    */
@@ -558,13 +583,32 @@ export class SummaryaiService {
       return response.data.candidates?.[0]?.content?.parts?.[0]?.text || '외부 AI 분석 서버가 일시적으로 응답하지 않습니다. 잠시 후 다시 시도해 주세요.';
     } catch (e) {
       console.error('Gemini 요약 API 호출 실패:', e);
-      return '요약 생성 중 오류 발생';
+      return '요약 생성 중 오류 발생. 다시 한번 시도해주세요.';
     }
   }
 
-  /**
-   * 프로젝트 요약을 생성합니다.
-   */
+
+  // Gemini Doublecheck API로 프롬프트를 보내는 함수
+  private async callGeminiDoublecheck(prompt: string): Promise<string> {
+    const apiKey = process.env.GEMINI_Doublecheck_API_KEY || 'AIzaSyDhyXbVoZ29dKug8pHEoqYFsddhFmf0MFU';
+    if (!apiKey) {
+      return 'GEMINI_Doublecheck_API_KEY가 설정되어 있지 않습니다.';
+    }
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    try {
+      const { data } = await axios.post(
+        url,
+        { contents: [{ parts: [{ text: prompt }] }] },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      return data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'AI 응답이 없습니다.';
+    } catch (e) {
+      console.error('Gemini Doublecheck API 호출 실패:', e);
+      return '요약 생성 중 오류 발생. 다시 한번 시도해주세요.';
+    }
+  }
+
+  // 프로젝트 요약을 생성합니다. (1차 요약 후 2차 정제)
   private async generateProjectSummary(timeline: ProjectTimeline): Promise<string> {
     const events = timeline.events;
     if (events.length === 0) return '프로젝트 활동이 없습니다.';
@@ -572,15 +616,66 @@ export class SummaryaiService {
     // 1. 이슈/커밋 주요 내용/키워드 추출 (각 30개로 제한)
     const issues = events.filter(e => e.type === 'issue').slice(0, 30);
     const commits = events.filter(e => e.type === 'commit').slice(0, 30);
-    const issueTitles = issues.map(i => i.title).join('\n');
+    const doneIssues = issues.filter(i => i.status === 'DONE');
+    const openIssues = issues.filter(i => i.status !== 'DONE');
+    const doneTitles = doneIssues.map(i => i.title).join('\n');
+    const openTitles = openIssues.map(i => i.title).join('\n');
     const commitMessages = commits.map(c => c.title).join('\n');
 
-    // 2. Gemini 프롬프트 생성 (마크다운 문서 형식)
-    const prompt = `아래 이슈/커밋 내역을 바탕으로, 아래와 같은 마크다운 문서 형식으로 프로젝트를 요약해 주세요.\n\n## 프로젝트 목적\n(한 문장)\n\n## 주요 기능\n| 기능명 | 설명 |\n|---|---|\n| ... | ... |\n\n## 핵심 기술\n- (기술1)\n- (기술2)\n\n## 최근 집중한 작업\n- (리스트)\n\n## 해결한 문제\n- (리스트)\n\n## 남은 과제\n- (리스트)\n\n## 참고\n> (필요시 추가 설명)\n\n[이슈 목록]\n${issueTitles}\n\n[커밋 메시지]\n${commitMessages}`;
+    // 1차 프롬프트
+    const prompt = `아래 이슈/커밋 내역만을 바탕으로, 이전 히스토리는 포함하지 말고, 아래와 같은 마크다운 문서 형식으로 프로젝트를 요약해 주세요.\n\n\n## 프로젝트 목적\n(한 문장)\n\n## 주요 기능\n| 기능명 | 설명 |\n|---|---|\n| ... | ... |\n\n## 핵심 기술 스택\n- (React, NestJS, MySQL, AWS, TypeScript, Docker 등 실제 사용한 기술 스택만 나열) ※ 'UI/UX 개선', 'AI 분석', '자동 라벨링' 등 기능/작업/목표는 제외하고, 실제 기술명만 작성해 주세요.\n\n## 최근 집중한 작업\n- (리스트)\n\n## 해결한 과제\n${doneTitles ? doneTitles : '없음'}\n\n## 남은 과제\n${openTitles ? openTitles : '없음'}\n\n[이슈 목록]\n${issues.map(i => i.title).join('\n')}\n\n[커밋 메시지]\n${commitMessages}`;
 
-    // 3. Gemini API 호출
-    const aiSummary = await this.callGeminiSummaryAI(prompt);
-    return aiSummary;
+    // 1차 요약 생성
+    const draft = await this.callGeminiDoublecheck(prompt);
+
+    // 2차 검토 프롬프트 (1차 요약만 기반, 마크다운 폼 명확히 안내)
+    const markdownForm = `\n\n## 프로젝트 목적\n(한 문장)\n\n## 주요 기능\n| 기능명 | 설명 |\n|---|---|\n| ... | ... |\n\n## 핵심 기술 스택\n- (React, NestJS, MySQL, AWS, TypeScript, Docker 등 실제 사용한 기술 스택만 나열) ※ 'UI/UX 개선', 'AI 분석', '자동 라벨링' 등 기능/작업/목표는 제외하고, 실제 기술명만 작성해 주세요.\n\n## 최근 집중한 작업\n- (리스트)\n\n## 해결한 과제\n- (리스트)\n\n## 남은 과제\n- (리스트)`;
+    const reviewPrompt = `아래는 AI가 생성한 프로젝트 요약(초안)입니다.\n\n---\n${draft}\n---\n\n이 초안을 바탕으로, 누락된 핵심 내용이나 표현을 보완하여 반드시 아래의 마크다운 문서 형식(폼)과 동일한 구조로 **최종 프로젝트 요약**을 다시 작성해 주세요.\n\n단, '최근 집중한 작업', '해결한 과제', '남은 과제' 항목은 반드시 위 초안 요약에서 나온 내용을 그대로 복사해서 사용하세요. 안내문이나 메타데이터는 포함하지 말고, 아래 폼을 그대로 따라 결과만 반환해 주세요.${markdownForm}`;
+
+    // 2차 정제 요약 생성
+    const reviewed = await this.callGeminiDoublecheck(reviewPrompt);
+    return (reviewed ?? '').trim();
+  }
+
+
+
+  /**
+   * 타임라인 기반 요약 프롬프트 빌더
+   */
+  private buildSummaryPrompt(timeline: ProjectTimeline): string {
+    const issues = timeline.events.filter(e => e.type === 'issue').slice(0, 30);
+    const commits = timeline.events.filter(e => e.type === 'commit').slice(0, 30);
+    const issueTitles = issues.map(i => `- ${i.title}`).join('\n');
+    const commitMessages = commits.map(c => `- ${c.title}`).join('\n');
+
+    return `아래 이슈/커밋 내역만을 바탕으로, 이전 히스토리는 포함하지 말고, 다음과 같은 마크다운 문서 형식으로 프로젝트를 요약해 주세요.
+
+    ## 프로젝트 목적
+    (한 문장)
+
+    ## 주요 기능
+    | 기능명 | 설명 |
+    |---|---|
+    | ... | ... |
+
+    ## 핵심 기술
+    - (기술1)
+    - (기술2)
+
+    ## 최근 집중한 작업
+    - (리스트)
+
+    ## 해결한 문제
+    - (리스트)
+
+    ## 남은 과제
+    - (리스트)
+
+    [이슈 목록]
+    ${issueTitles}
+
+    [커밋 메시지]
+    ${commitMessages}`;
   }
 
   /**
@@ -661,7 +756,22 @@ export class SummaryaiService {
     }
 
     // 3. 프롬프트 생성 (강점/개선점 중심)
-    const prompt = `아래는 내가 생성한 이슈에 대해 팀원들이 남긴 댓글입니다.\n\n${peerComments.map((c, i) => `${i+1}. ${c.content}`).join('\n')}\n\n이 댓글들을 바탕으로, 내 협업 스타일과 커뮤니케이션 특징을 간단히 요약하고, 특히 \"강점\"과 \"개선점\"을 구체적으로 마크다운 리스트로 정리해 주세요. 아래와 같은 마크다운 구조로 작성해 주세요.\n\n## 팀원 피드백 요약\n\n### 강점\n- (구체적인 강점)\n\n### 개선점\n- (구체적인 개선점)\n\n### 한줄 총평\n- (한 문장으로 내 협업/커뮤니케이션 스타일을 요약)`;
+    // 기존: 번호와 내용
+    // const prompt = `아래는 내가 생성한 이슈에 대해 팀원들이 남긴 댓글입니다.\n\n${peerComments.map((c, i) => `${i+1}. ${c.content}`).join('\n')}\n\n이 댓글들을 바탕으로, 내 협업 스타일과 커뮤니케이션 특징을 간단히 요약하고, 특히 \"강점\"과 \"개선점\"을 구체적으로 마크다운 리스트로 정리해 주세요. 아래와 같은 마크다운 구조로 작성해 주세요.\n\n## 팀원 피드백 요약\n\n### 강점\n- (구체적인 강점)\n\n### 개선점\n- (구체적인 개선점)\n\n### 한줄 총평\n- (한 문장으로 내 협업/커뮤니케이션 스타일을 요약)`;
+
+    // 수정: 번호 없이 작성자와 내용, 또는 내용만 나열
+    const peerCommentLines = peerComments.map(c => c.author ? `- (${c.author}) ${c.content}` : `- ${c.content}`).join('\n');
+    const prompt = `아래는 내가 생성한 이슈에 대해 팀원들이 남긴 댓글입니다.
+    ${peerCommentLines}
+    이 댓글들을 바탕으로, 내 협업 스타일과 커뮤니케이션 특징을 간단히 요약하고, 특히 "강점"과 "개선점"을 구체적으로 마크다운 리스트로 정리해 주세요. 아래와 같은 마크다운 구조로 작성해 주세요.
+    댓글 내용만을 기반으로, 메타데이터나 식별자(예: “-(240b9327-9cf6-445d-8852-36e147ef4494)”) 없이 순수한 댓글 텍스트만을 활용해 다음을 수행해 주세요.
+    ## 팀원 피드백 요약
+    ### 강점
+    - (구체적인 강점)
+    ### 개선점
+    - (구체적인 개선점)
+    ### 한줄 총평
+    - (한 문장으로 내 협업/커뮤니케이션 스타일을 요약)`;
 
     // 4. Gemini API 호출 (GEMINI_FEEDBACK_API_KEY 사용)
     return await this.callGeminiFeedbackAI(prompt);
@@ -687,7 +797,7 @@ export class SummaryaiService {
       return response.data.candidates?.[0]?.content?.parts?.[0]?.text || '외부 AI 분석 서버가 일시적으로 응답하지 않습니다. 잠시 후 다시 시도해 주세요.';
     } catch (e) {
       console.error('Gemini 피드백 API 호출 실패:', e);
-      return '피드백 요약 생성 중 오류 발생';
+      return '피드백 요약 생성 중 오류 발생. 다시 한번 시도해주세요.';
     }
   }
 } 
