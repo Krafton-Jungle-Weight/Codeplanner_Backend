@@ -70,7 +70,7 @@ export class SummaryaiService {
     // 3. AI 분석
     const [collaborationFeedback, aiSummary, peerFeedbackSummary] = await Promise.all([
       this.analyzeCollaborationStyle(userActivities),
-      this.generateProjectSummary(projectTimeline),
+      this.generateProjectSummary(projectTimeline, userId),
       this.analyzePeerFeedback(userId, projectId)
     ]);
 
@@ -609,28 +609,115 @@ export class SummaryaiService {
   }
 
   // 프로젝트 요약을 생성합니다. (1차 요약 후 2차 정제)
-  private async generateProjectSummary(timeline: ProjectTimeline): Promise<string> {
+  private async generateProjectSummary(timeline: ProjectTimeline, userId: string): Promise<string> {
     const events = timeline.events;
     if (events.length === 0) return '프로젝트 활동이 없습니다.';
 
-    // 1. 이슈/커밋 주요 내용/키워드 추출 (각 30개로 제한)
-    const issues = events.filter(e => e.type === 'issue').slice(0, 30);
-    const commits = events.filter(e => e.type === 'commit').slice(0, 30);
-    const doneIssues = issues.filter(i => i.status === 'DONE');
-    const openIssues = issues.filter(i => i.status !== 'DONE');
+    // 이슈 중요도 계산 함수
+    function calcIssueImportance(issue: any): number {
+      let score = 0;
+      // 1. status가 'story'면 핫픽스 간주
+      if (issue.status === 'story') {
+        score += 15;
+      }
+      // 2. 제목에 '핫픽스' 또는 'hotfix' 포함 시 가중치 15
+      if (issue.title && (/핫픽스/i.test(issue.title) || /hotfix/i.test(issue.title))) {
+        score += 15;
+      }
+      // 3. 댓글 수 * 2
+      score += (issue.commentCount || 0) * 2;
+      // 4. 참여자 수 * 3
+      score += (issue.participantCount || 0) * 3;
+      // 5. position 가중치 (0이면 20, 1이면 19, ... 19면 1, 20 이상이면 0)
+      if (typeof issue.position === 'number' && issue.position >= 0 && issue.position < 20) {
+        score += 20 - issue.position;
+      }
+      return score;
+    }
+    // 커밋 중요도 계산 함수
+    function calcCommitImportance(commit: any): number {
+      let score = 0;
+      score += (commit.title?.length || 0) * 0.5;
+      if (commit.stats && typeof commit.stats.total === 'number') {
+        score += commit.stats.total * 0.2;
+      }
+      return score;
+    }
+
+    // 이슈별 중요도 계산 및 정렬
+    const issues = events
+      .filter(e => e.type === 'issue')
+      .map(issue => ({ ...issue, importance: calcIssueImportance(issue), tag: (issue as any).tag ?? '', assigneeId: (issue as any).assigneeId ?? '' }))
+      .sort((a, b) => b.importance - a.importance);
+
+    // 중요도 높은 이슈 30개 선정
+    const topIssues = issues.slice(0, 30);
+    // top 이슈의 tag값 모음 (tag가 없으면 빈 문자열)
+    const topIssueTags = topIssues.map(i => (typeof i.tag === 'string' ? i.tag : '')).filter(tag => tag);
+
+    // 해당 이슈에 연결된 커밋만 추출 (커밋 메시지 맨 앞이 '#[tag]'로 시작하면 연결된 것으로 간주)
+    let relatedCommits = events
+      .filter(e => e.type === 'commit')
+      .filter(commit => {
+        return topIssueTags.some(tag =>
+          commit.title && commit.title.startsWith(`#${tag}`)
+        );
+      })
+      .map(commit => ({ ...commit, importance: calcCommitImportance(commit) }))
+      .sort((a, b) => b.importance - a.importance)
+      .slice(0, 30);
+
+    // 만약 연결된 커밋이 30개 미만이면, 중요도 높은 커밋을 추가로 채움
+    if (relatedCommits.length < 30) {
+      const extraCommits = events
+        .filter(e => e.type === 'commit' && !relatedCommits.some(c => c.id === e.id))
+        .map(commit => ({ ...commit, importance: calcCommitImportance(commit) }))
+        .sort((a, b) => b.importance - a.importance)
+        .slice(0, 30 - relatedCommits.length);
+      relatedCommits = relatedCommits.concat(extraCommits);
+    }
+
+    // 내가 해결한 이슈 리스트 추출 (assigneeId === userId)
+    // userId는 함수 인자로 받아야 하므로, generateProjectSummary에 userId 인자를 추가해야 함
+    // 아래는 userId가 있다고 가정하고 작성
+    const mySolvedIssues = topIssues.filter(i => i.assigneeId && i.assigneeId === userId);
+    const mySolvedTitles = mySolvedIssues.map(i => i.title).join('\n');
+
+    // 기존 요약 프롬프트 생성 로직 (topIssues, relatedCommits 사용)
+    const doneIssues = topIssues.filter(i => i.status === 'DONE');
+    const openIssues = topIssues.filter(i => i.status !== 'DONE');
     const doneTitles = doneIssues.map(i => i.title).join('\n');
     const openTitles = openIssues.map(i => i.title).join('\n');
-    const commitMessages = commits.map(c => c.title).join('\n');
+    const commitMessages = relatedCommits.map(c => c.title).join('\n');
 
-    // 1차 프롬프트
-    const prompt = `아래 이슈/커밋 내역만을 바탕으로, 이전 히스토리는 포함하지 말고, 아래와 같은 마크다운 문서 형식으로 프로젝트를 요약해 주세요.\n\n\n## 프로젝트 목적\n(한 문장)\n\n## 주요 기능\n| 기능명 | 설명 |\n|---|---|\n| ... | ... |\n\n## 핵심 기술 스택\n- (React, NestJS, MySQL, AWS, TypeScript, Docker 등 실제 사용한 기술 스택만 나열) ※ 'UI/UX 개선', 'AI 분석', '자동 라벨링' 등 기능/작업/목표는 제외하고, 실제 기술명만 작성해 주세요.\n\n## 최근 집중한 작업\n- (리스트)\n\n## 해결한 과제\n${doneTitles ? doneTitles : '없음'}\n\n## 남은 과제\n${openTitles ? openTitles : '없음'}\n\n[이슈 목록]\n${issues.map(i => i.title).join('\n')}\n\n[커밋 메시지]\n${commitMessages}`;
+    const prompt = `아래 이슈/커밋 내역만을 바탕으로, 이전 히스토리는 포함하지 말고, 아래와 같은 마크다운 문서 형식으로 프로젝트를 요약해 주세요.\n\n\n## 프로젝트 목적\n(한 문장)\n\n## 주요 기능\n| 기능명 | 설명 |\n|---|---|\n| ... | ... |\n\n## 핵심 기술 스택\n- (React, NestJS, MySQL, AWS, TypeScript, Docker 등 실제 사용한 기술 스택만 나열) ※ 'UI/UX 개선', 'AI 분석', '자동 라벨링' 등 기능/작업/목표는 제외하고, 실제 기술명만 작성해 주세요.\n\n## 최근 집중한 작업\n- (리스트)\n\n## 해결한 과제\n${doneTitles ? doneTitles : '없음'}\n\n## 남은 과제\n${openTitles ? openTitles : '없음'}\n\n[이슈 목록]\n${topIssues.map(i => i.title).join('\n')}\n\n[커밋 메시지]\n${commitMessages}\n\n## 내가 해결한 과제\n${mySolvedTitles ? mySolvedTitles : '없음'}`;
 
     // 1차 요약 생성
     const draft = await this.callGeminiDoublecheck(prompt);
 
     // 2차 검토 프롬프트 (1차 요약만 기반, 마크다운 폼 명확히 안내)
-    const markdownForm = `\n\n## 프로젝트 목적\n(한 문장)\n\n## 주요 기능\n| 기능명 | 설명 |\n|---|---|\n| ... | ... |\n\n## 핵심 기술 스택\n- (React, NestJS, MySQL, AWS, TypeScript, Docker 등 실제 사용한 기술 스택만 나열) ※ 'UI/UX 개선', 'AI 분석', '자동 라벨링' 등 기능/작업/목표는 제외하고, 실제 기술명만 작성해 주세요.\n\n## 최근 집중한 작업\n- (리스트)\n\n## 해결한 과제\n- (리스트)\n\n## 남은 과제\n- (리스트)`;
-    const reviewPrompt = `아래는 AI가 생성한 프로젝트 요약(초안)입니다.\n\n---\n${draft}\n---\n\n이 초안을 바탕으로, 누락된 핵심 내용이나 표현을 보완하여 반드시 아래의 마크다운 문서 형식(폼)과 동일한 구조로 **최종 프로젝트 요약**을 다시 작성해 주세요.\n\n단, '최근 집중한 작업', '해결한 과제', '남은 과제' 항목은 반드시 위 초안 요약에서 나온 내용을 그대로 복사해서 사용하세요. 안내문이나 메타데이터는 포함하지 말고, 아래 폼을 그대로 따라 결과만 반환해 주세요.${markdownForm}`;
+    const markdownForm = `
+
+## 프로젝트 목적
+(한 문장)
+
+## 주요 기능
+| 기능명 | 설명 |
+|---|---|
+| ... | ... |
+
+## 핵심 기술 스택
+- (React, NestJS, MySQL, AWS, TypeScript, Docker 등 실제 사용한 기술 스택만 나열) ※ 'UI/UX 개선', 'AI 분석', '자동 라벨링' 등 기능/작업/목표는 제외하고, 실제 기술명만 작성해 주세요.
+
+## 최근 집중한 작업
+- (리스트)
+
+## 남은 과제
+- (리스트)
+
+## 내가 해결한 과제
+- (리스트)`;
+    const reviewPrompt = `아래는 AI가 생성한 프로젝트 요약(초안)입니다.\n\n---\n${draft}\n---\n\n이 초안을 바탕으로, 누락된 핵심 내용이나 표현을 보완하여 반드시 아래의 마크다운 문서 형식(폼)과 동일한 구조로 **최종 프로젝트 요약**을 다시 작성해 주세요.\n\n단, '최근 집중한 작업', '남은 과제', '내가 해결한 과제' 항목은 반드시 위 초안 요약에서 나온 내용을 그대로 복사해서 사용하세요. 안내문이나 메타데이터는 포함하지 말고, 아래 폼을 그대로 따라 결과만 반환해 주세요.${markdownForm}`;
 
     // 2차 정제 요약 생성
     const reviewed = await this.callGeminiDoublecheck(reviewPrompt);
@@ -665,10 +752,10 @@ export class SummaryaiService {
     ## 최근 집중한 작업
     - (리스트)
 
-    ## 해결한 문제
+    ## 남은 과제
     - (리스트)
 
-    ## 남은 과제
+    ## 내가 해결한 과제
     - (리스트)
 
     [이슈 목록]
