@@ -283,7 +283,7 @@ chore: 빌드 프로세스 또는 보조 도구 변경
 
 - **이슈 리포트**: [GitHub Issues](https://github.com/your-username/Codeplanner_Backend/issues)
 - **문서**: [Wiki](https://github.com/your-username/Codeplanner_Backend/wiki)
-- **이메일**: support@codeplanner.com
+- **이메일**: codeplanner0@gmail.com
 
 ## 🙏 감사의 말
 
