@@ -34,14 +34,14 @@ export class AnalysisService {
         const safeFilename = file.filename
           .replace(/[\/\\]/g, '_')
           .replace(/[^a-zA-Z0-9._-]/g, '_');
-        const tempPath = path.join(
-          os.tmpdir(),
-          `${Date.now()}-${safeFilename}`,
-        );
+        const tempPath = path.join(os.tmpdir(),`${Date.now()}-${safeFilename}`);
 
         fs.writeFileSync(tempPath, file.content);
         tempFiles.push(tempPath);
-
+        console.log("--------------------")
+        console.log("파일 dir:" , tempPath)
+        console.log("파일 명: ", safeFilename);
+        console.log("--------------------")
         const config: ScannerConfig = {
           filePath: tempPath,
           language: file.language,
