@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Octokit } from 'octokit';
+// import { Octokit } from 'octokit'; 
 import { GithubToken } from './github.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/user/user.entity';
@@ -11,9 +11,13 @@ import { ChangedFileWithContent } from './dto/github.dto';
 import * as parseLinkHeader from 'parse-link-header';
 import { UserService } from 'src/user/user.service';
 
+// 2. 타입 에러 방지를 위해 타입만 가져옵니다.
+import { Octokit } from '@octokit/rest';
+
 @Injectable()
-export class GithubService {
+export class GithubService {  // 3. OnModuleInit 추가
   private readonly githubApiUrl = 'https://api.github.com';
+  private Octokit: new (options: any) => Octokit;  // 4. Octokit 클래스를 저장할 프로퍼티 추가
 
   constructor(
     private readonly httpService: HttpService,
@@ -133,7 +137,7 @@ export class GithubService {
     return response.data;
   }
 
-  async connect(owner: string, repo: string, user: User) {
+  async connect(owner: string, repo: string, user: User): Promise<any> {  // 5. : Promise<any> 추가
     // console.log('owner', owner);
     // console.log('repo', repo);
     // console.log('user', user);

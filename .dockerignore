@@ -1,0 +1,15 @@
+# Git 관련 폴더
+.git
+.gitignore
+
+# 의존성 모듈 (Dockerfile 안에서 설치하므로 복사할 필요 없음)
+node_modules
+
+# Next.js 빌드 결과물 폴더 (빌드 단계에서 생성됨)
+.next
+
+# 로그 파일
+npm-debug.log
+
+# 환경변수 파일 (보안을 위해 포함하지 않는 것을 권장)
+.env*

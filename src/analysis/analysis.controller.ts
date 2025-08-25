@@ -1,8 +1,8 @@
 import { Controller, Post, Body, Get, Param, UseGuards, Req, Query } from '@nestjs/common';
 import { AnalysisService } from './analysis.service';
 import { AnalyzeRequest } from './dto/analyze-request.dto';
-import { execa } from 'execa';
-import { join } from 'path';
+// import execa from 'execa';
+// import { join } from 'path';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/user.decorator';
 

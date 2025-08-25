@@ -1,0 +1,32 @@
+# 파일 이름: backend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-backend
+  template:
+    metadata:
+      labels:
+        app: my-backend
+    spec:
+      containers:
+      - name: backend-container
+        image: my-backend:test
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+        # 환경 변수 설정
+        envFrom:
+        - configMapRef:
+            # backend-config ConfigMap의 모든 데이터를 환경변수로 가져옵니다.
+            name: backend-config
+        - secretRef:
+            # backend-secrets Secret의 모든 데이터를 환경변수로 가져옵니다.
+            name: backend-secrets
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: "http://43.202.166.254:31500"

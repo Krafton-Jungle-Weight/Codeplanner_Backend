@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EmailInvitationToken } from './email-invitation-token.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { SentMessageInfo, Transporter } from 'nodemailer'; // 1. Transporter를 여기서 import 합니다.
 
 interface EmailOptions {
   to: string;
@@ -16,7 +17,8 @@ interface EmailOptions {
 
 @Injectable()
 export class EmailService {
-  private transporter: Mail;
+  // 2. transporter의 타입을 Transporter<SentMessageInfo>로 명확하게 지정합니다.
+  private transporter: Transporter<SentMessageInfo>;
 
   @InjectRepository(User)
   private userRepository: Repository<User>;

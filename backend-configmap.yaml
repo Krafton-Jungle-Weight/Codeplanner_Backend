@@ -1,0 +1,27 @@
+# 파일 이름: backend-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+data:
+  # 포트 및 DB 접속 정보 (비밀번호 제외)
+  PORT: "5000"
+  DB_HOST: "codeplannerdb.cjyeyk2qmmx3.ap-northeast-2.rds.amazonaws.com"
+  DB_PORT: "5432"
+  DB_USERNAME: "codeplanner"
+  DB_DATABASE: "codeplanner"
+  DB_SSL: "true"
+  DB_SSL_CA_PATH: "./global-bundle.pem"
+  
+  # URL 정보
+  # 중요: CORS_ORIGIN에 쿠버네티스 내부 통신을 위한 프론트엔드 주소를 추가해야 할 수 있습니다.
+  # 우선 외부 도메인만 유지하고, 필요시 'http://frontend-service:3000' 같은 주소를 추가합니다.
+  CORS_ORIGIN: "https://code-planner.com,https://code-planner.com:5000,https://code-planner.com:3000"
+  BASE_URL: "https://code-planner.com"
+  WEBHOOK_BASE_URL: "https://code-planner.com/api"
+
+  # Github Client ID
+  GITHUB_CLIENT_ID: "Ov23lijeWMuKS4KS6a78"
+
+  # 메일 서비스 이메일
+  GMAIL_APP_MAIL: "codeplanner0@gmail.com"

@@ -1,0 +1,16 @@
+# 파일 이름: backend-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  # 타입을 ClusterIP로 지정하여 클러스터 내부에서만 통신하도록 합니다.
+  type: NodePort
+  selector:
+    # 'app: my-backend' 라벨을 가진 Pod를 찾아서 연결합니다.
+    app: my-backend
+  ports:
+    - protocol: TCP
+      port: 5000 # 서비스 자체의 포트
+      targetPort: 5000 # 컨테이너가 사용하는 포트
+      nodePort: 31500

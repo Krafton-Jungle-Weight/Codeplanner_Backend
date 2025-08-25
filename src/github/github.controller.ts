@@ -30,7 +30,7 @@ export class GithubController {
     @Param('owner') owner: string,
     @Param('repo') repo: string,
     @CurrentUser() user: User,
-  ) {
+  ): Promise<any> {
     return this.githubService.connect(owner, repo, user);
   }
 

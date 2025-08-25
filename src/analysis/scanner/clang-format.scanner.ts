@@ -1,4 +1,4 @@
-import { execa } from 'execa';
+import execa from 'execa';
 import { BaseScanner, ScannerConfig, ScannerResult, ScannerIssue } from './base.scanner';
 import { promises as fs } from 'fs';
 
