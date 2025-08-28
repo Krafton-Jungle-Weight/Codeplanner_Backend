@@ -20,6 +20,11 @@ spec:
         ports:
         - containerPort: 5000
         # 환경 변수 설정
+        resources:
+          requests:
+            cpu: "100m" # 최소한의 자원 보장
+          limits:
+            cpu: "500m" # 최대 제한 자원 보장
         envFrom:
         - configMapRef:
             # backend-config ConfigMap의 모든 데이터를 환경변수로 가져옵니다.

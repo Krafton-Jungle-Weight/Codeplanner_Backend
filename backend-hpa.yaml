@@ -1,0 +1,23 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  # HPA의 이름을 지정합니다.
+  name: backend-hpa
+spec:
+  # 어떤 Deployment를 조절할지 대상을 지정합니다.
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend-deployment # 백엔드 Deployment의 이름
+  # Pod 개수의 최소/최대 범위를 정합니다.
+  minReplicas: 1 # 평소에는 1개만 유지
+  maxReplicas: 5 # 트래픽이 몰리면 최대 5개까지 증가
+  # 조절 조건을 설정합니다.
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      # 모든 Pod의 평균 CPU 사용량이 50%를 넘으면 Pod 개수를 늘립니다.
+      target:
+        type: Utilization
+        averageUtilization: 50

@@ -12,14 +12,18 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  const allowedOrigins = [
+    'http://localhost:3000', // 로컬 개발용
+    'http://43.202.166.254:30986', // 실제 프론트엔드 주소
+  ];
 
   // 모든 라우트에 /api 프리픽스 적용
   // app.setGlobalPrefix('api');
 
   // .env에서 CORS_ORIGIN을 불러와서 배열로 변환
-  const corsOrigin = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'];  // 개발 환경시: http://localhost:3000, 배포 환경시: 배포 주소
+  // const corsOrigin = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'];  // 개발 환경시: http://localhost:3000, 배포 환경시: 배포 주소
   app.enableCors({
-    origin: corsOrigin,
+    origin: allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
