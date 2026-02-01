@@ -5,9 +5,12 @@ import { ClangFormatScanner } from './scanner/clang-format.scanner';
 import { ScannerConfig, ScannerResult } from './scanner/base.scanner';
 import { AnalyzeRequest, AnalyzeResponse } from './dto/analyze-request.dto';
 import { GithubService } from '../github/github.service';
+import { Mutex } from 'async-mutex';
 
 @Injectable()
 export class AnalysisService {
+  private readonly scannerMutex = new Mutex();
+  
   constructor(
     private readonly githubService: GithubService,
   ) {}
@@ -55,11 +58,15 @@ export class AnalysisService {
          * 세 개의 실행은 계속 교차해서 발생
          */
         console.time(`analyze-file-${file.filename}`);
-        const [cppcheckResult, clangTidyResult, clangFormatResult] = await Promise.all([
-          cppcheck.execute(),
-          clangTidy.execute(),
-          clangFormat.execute(),
-        ]);
+        const [cppcheckResult, clangTidyResult, clangFormatResult] = 
+          await this.scannerMutex.runExclusive(async () => {
+            return Promise.all([
+              cppcheck.execute(),
+              clangTidy.execute(),
+              clangFormat.execute(),
+            ])
+          });
+          
         console.timeEnd(`analyze-file-${file.filename}`);
         const response: AnalyzeResponse = {
           file: file.filename,
